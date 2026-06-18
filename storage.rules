@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helpers ───────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    function isArtisan() {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/artisans/$(request.auth.uid));
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ─── Default deny ────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // ─── User profile photos ─────────────────────────────────────
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isValidImage();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ─── Artisan portfolio images ──────────────────────────────────
+    match /artisans/{artisanId}/portfolio/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if (isOwner(artisanId) || isArtisan()) && isValidImage();
+      allow delete: if isOwner(artisanId) || isAdmin();
+    }
+
+    // ─── Temp upload staging (face-blur pipeline) ──────────────────
+    match /temp/{uid}/{imageId} {
+      allow write: if isOwner(uid) && isValidImage();
+      allow read: if isOwner(uid) || isAdmin();
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // ─── Booking attachments (receipts, before/after) ────────────
+    match /bookings/{userId}/{bookingId}/{fileName} {
+      allow read: if isOwner(userId) || isAdmin()
+        || (isArtisan() && firestore.exists(
+          /databases/(default)/documents/bookings/$(bookingId)
+        ));
+      allow write: if isOwner(userId) && isValidImage();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+  }
+}

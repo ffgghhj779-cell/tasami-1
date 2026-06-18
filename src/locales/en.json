@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "Tasami Al-Wataniah"
+  },
+  "home": {
+    "searchPlaceholder": "What service are you looking for?",
+    "categories": "Main Services",
+    "howItWorks": "How Tasami Works?",
+    "topArtisans": "Top Verified Artisans",
+    "viewAll": "View All"
+  },
+  "services": {
+    "homeCleaning": "Home Cleaning",
+    "acMaintenance": "AC Maintenance",
+    "shopContracts": "Shop Contracts",
+    "hotelContracts": "Hotel Contracts",
+    "enterprise": "Enterprise Contracts"
+  },
+  "howSteps": {
+    "step1Title": "Choose Service",
+    "step1Desc": "Select the exact service you need",
+    "step2Title": "Set Appointment",
+    "step2Desc": "Pick an appropriate time",
+    "step3Title": "Confirm Request",
+    "step3Desc": "Secure payment and confirm",
+    "step4Title": "Artisan Arrival",
+    "step4Desc": "High quality service delivery"
+  }
+}

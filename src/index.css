@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #FBF7F2;
+  --color-bg-card: #FFFFFF;
+  --color-text-primary: #3E4A2E;
+  --color-text-secondary: #5C6B44;
+  --color-accent: #C4A97D;
+  --color-accent-hover: #A88B5E;
+  --color-border: #E5DDD3;
+  --color-danger: #B94A4A;
+  --color-success: #5C6B44;
+
+  --shadow-card: 0 2px 12px rgba(62, 74, 46, 0.04);
+  --shadow-card-hover: 0 8px 28px rgba(62, 74, 46, 0.10);
+  --shadow-header: 0 4px 24px rgba(62, 74, 46, 0.14);
+  --shadow-bottom-bar: 0 -8px 24px rgba(62, 74, 46, 0.06);
+  --shadow-accent: 0 4px 18px rgba(196, 169, 125, 0.45);
+
+  --radius-xl: 14px;
+
+  --font-arabic: 'Tajawal', sans-serif;
+  --font-urdu: 'Noto Nastaliq Urdu', serif;
+  --font-sans: 'Tajawal', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-bg-primary text-text-primary font-arabic;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  /* ─── Scrollbar ─── */
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ─── Premium Glassmorphism Card ─── */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(229, 221, 211, 0.6);
+  }
+
+  /* ─── Elevated Card ─── */
+  .card-elevated {
+    @apply bg-bg-card border border-border;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .card-elevated:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* ─── Accent CTA Button ─── */
+  .btn-accent {
+    @apply bg-accent text-white font-bold rounded-xl active:scale-95 transition-all duration-300;
+    box-shadow: var(--shadow-accent);
+  }
+  .btn-accent:hover {
+    @apply bg-accent-hover;
+    box-shadow: 0 6px 22px rgba(196, 169, 125, 0.55);
+  }
+
+  /* ─── Speaker Button ─── */
+  .btn-speak {
+    @apply p-1.5 rounded-full transition-all duration-300 active:scale-95;
+  }
+  .btn-speak:hover {
+    @apply bg-border;
+  }
+
+  /* ─── Micro-animation base ─── */
+  .interactive-card {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 active:scale-[0.97];
+  }
+
+  /* ─── Success screen entrance ─── */
+  .success-pop {
+    animation: success-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .success-ring {
+    animation: success-ring 1.2s ease-out 0.2s both;
+  }
+  .success-fade-up {
+    animation: success-fade-up 0.5s ease-out both;
+  }
+}
+
+@keyframes success-pop {
+  0%   { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes success-ring {
+  0%   { opacity: 0; transform: scale(0.8); box-shadow: 0 0 0 0 rgba(92, 107, 68, 0.4); }
+  50%  { box-shadow: 0 0 0 16px rgba(92, 107, 68, 0); }
+  100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(92, 107, 68, 0); }
+}
+
+@keyframes success-fade-up {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

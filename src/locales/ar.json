@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "تسامي الوطنية"
+  },
+  "home": {
+    "searchPlaceholder": "ما الخدمة التي تبحث عنها؟",
+    "categories": "الخدمات الرئيسية",
+    "howItWorks": "كيف تعمل تسامي؟",
+    "topArtisans": "أمهر الحرفيين المعتمدين",
+    "viewAll": "عرض الكل"
+  },
+  "services": {
+    "homeCleaning": "تنظيف المنازل",
+    "acMaintenance": "صيانة المكيفات",
+    "shopContracts": "عقود المحلات",
+    "hotelContracts": "عقود الفنادق",
+    "enterprise": "عقود الشركات"
+  },
+  "howSteps": {
+    "step1Title": "اختر الخدمة",
+    "step1Desc": "حدد نوع الخدمة المطلوبة بدقة",
+    "step2Title": "حدد الموعد",
+    "step2Desc": "اختر الوقت المناسب لك",
+    "step3Title": "تأكيد الطلب",
+    "step3Desc": "الدفع الآمن وتأكيد الحجز",
+    "step4Title": "وصول الفني",
+    "step4Desc": "تنفيذ الخدمة بأعلى جودة"
+  }
+}
