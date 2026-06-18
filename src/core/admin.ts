@@ -6,7 +6,7 @@ import { db } from './firebase';
  * Find it in the AdminGuard "access denied" screen or Firebase Console → Authentication.
  * Also update the same UID in firestore.rules → isHardcodedAdmin().
  */
-export const HARDCODED_ADMIN_UID = 'PASTE_YOUR_UID_HERE';
+export const HARDCODED_ADMIN_UID = 'Loeyivasx8YGMPfN8NUAFcZVSAJ3';
 
 export type BookingStatus =
   | 'pending'

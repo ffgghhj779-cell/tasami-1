@@ -14,7 +14,7 @@ service cloud.firestore {
 
     function isHardcodedAdmin() {
       return isAuthenticated()
-        && request.auth.uid == 'PASTE_YOUR_UID_HERE';
+        && request.auth.uid == 'Loeyivasx8YGMPfN8NUAFcZVSAJ3';
     }
 
     function isAdmin() {
