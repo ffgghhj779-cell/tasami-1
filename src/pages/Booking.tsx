@@ -24,7 +24,7 @@ import {
 } from '../core/booking';
 import type { BookingMapHandle } from '../components/booking/BookingMap';
 
-// Mapbox chunk (~1.4 MB) loads only when this screen mounts
+// Leaflet map — lazy-loaded on /booking only
 const BookingMap = lazy(() => import('../components/booking/BookingMap'));
 
 function MapSkeleton() {

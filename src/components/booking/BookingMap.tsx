@@ -1,13 +1,11 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-import Map, { type MapRef } from 'react-map-gl';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react';
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
-import 'mapbox-gl/dist/mapbox-gl.css';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-if (!MAPBOX_TOKEN && import.meta.env.DEV) {
-  console.warn('[BookingMap] VITE_MAPBOX_TOKEN is not set. Add it to .env.local');
-}
 
 export interface BookingMapHandle {
   flyTo: (longitude: number, latitude: number, zoom?: number) => void;
@@ -20,47 +18,70 @@ export interface BookingMapProps {
   onLocationChange: (longitude: number, latitude: number, zoom: number) => void;
 }
 
+function MapController({
+  controllerRef,
+  onLocationChange,
+}: {
+  controllerRef: React.Ref<BookingMapHandle>;
+  onLocationChange: (longitude: number, latitude: number, zoom: number) => void;
+}) {
+  const map = useMap();
+
+  useImperativeHandle(controllerRef, () => ({
+    flyTo(lng: number, lat: number, z = 15) {
+      map.flyTo([lat, lng], z, { duration: 1.2 });
+    },
+  }));
+
+  useMapEvents({
+    moveend() {
+      const center = map.getCenter();
+      onLocationChange(center.lng, center.lat, map.getZoom());
+    },
+  });
+
+  return null;
+}
+
 /**
- * RTL-friendly pin-drop map: the pin stays fixed at the viewport centre
- * while the user pans the map beneath it — standard mobile booking UX.
- * Mapbox GL is isolated here so this chunk loads only via React.lazy().
+ * RTL-friendly pin-drop map: fixed centre pin, user pans OpenStreetMap beneath it.
+ * Isolated in a lazy chunk — loads only on /booking.
  */
 const BookingMap = forwardRef<BookingMapHandle, BookingMapProps>(
   function BookingMap({ longitude, latitude, zoom, onLocationChange }, ref) {
-    const mapRef = useRef<MapRef>(null);
+    const [mounted, setMounted] = useState(false);
 
-    useImperativeHandle(ref, () => ({
-      flyTo(lng: number, lat: number, z = 15) {
-        mapRef.current?.flyTo({ center: [lng, lat], zoom: z, duration: 1200 });
-      },
-    }));
+    useEffect(() => {
+      setMounted(true);
+    }, []);
 
-    const emitCenter = useCallback(() => {
-      const map = mapRef.current?.getMap();
-      if (!map) return;
-      const center = map.getCenter();
-      onLocationChange(center.lng, center.lat, map.getZoom());
-    }, [onLocationChange]);
+    if (!mounted) {
+      return (
+        <div className="w-full h-full bg-bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-4 border-border border-t-accent animate-spin" />
+        </div>
+      );
+    }
 
     return (
-      <div className="relative w-full h-full isolate">
-        <Map
-          ref={mapRef}
-          longitude={longitude}
-          latitude={latitude}
+      <div className="relative w-full h-full isolate booking-map-root">
+        <MapContainer
+          center={[latitude, longitude]}
           zoom={zoom}
-          onMoveEnd={emitCenter}
-          mapStyle="mapbox://styles/mapbox/streets-v12"
-          mapboxAccessToken={MAPBOX_TOKEN ?? ''}
-          style={{ width: '100%', height: '100%' }}
+          className="w-full h-full rounded-[inherit] z-0"
+          zoomControl={false}
           attributionControl={false}
-          dragRotate={false}
-          pitchWithRotate={false}
-        />
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+          <MapController controllerRef={ref} onLocationChange={onLocationChange} />
+        </MapContainer>
 
-        {/* Fixed centre pin — pointer-events-none keeps pan gestures on the map */}
+        {/* Fixed centre pin */}
         <div
-          className="absolute inset-0 pointer-events-none flex items-center justify-center z-10"
+          className="absolute inset-0 pointer-events-none flex items-center justify-center z-[1000]"
           aria-hidden="true"
         >
           <div className="relative flex flex-col items-center -translate-y-4">
@@ -71,8 +92,7 @@ const BookingMap = forwardRef<BookingMapHandle, BookingMapProps>(
           </div>
         </div>
 
-        {/* Soft vignette for premium depth */}
-        <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0_0_40px_rgba(62,74,46,0.06)]" />
+        <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0_0_40px_rgba(62,74,46,0.06)] z-[1001]" />
       </div>
     );
   },

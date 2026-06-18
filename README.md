@@ -9,7 +9,7 @@ RTL-first PWA for home services booking — React 18, Vite, Tailwind CSS, Fireba
 ## Features
 
 - Multilingual (Arabic, English, Urdu, Tagalog)
-- Full booking flow with Mapbox pin-drop
+- Full booking flow with OpenStreetMap pin-drop (Leaflet)
 - Firestore persistence + anonymous auth
 - Real-time Admin Console
 - PWA install support
@@ -22,7 +22,7 @@ RTL-first PWA for home services booking — React 18, Vite, Tailwind CSS, Fireba
    ```bash
    npm install
    ```
-2. Copy `.env.example` → `.env.local` and configure Firebase / Mapbox keys
+2. Copy `.env.example` → `.env.local` and configure Firebase keys
 3. Enable **Anonymous Auth** in Firebase Console
 4. Deploy Firestore rules:
    ```bash

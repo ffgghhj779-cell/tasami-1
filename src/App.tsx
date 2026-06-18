@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
 
-// Critical-path pages — loaded eagerly (no mapbox dependency)
+// Critical-path pages — loaded eagerly
 import LangSelect      from './pages/LangSelect';
 import Home            from './pages/Home';
 import Login           from './pages/Login';
@@ -12,7 +12,7 @@ import Success         from './pages/Success';
 import Contracts       from './pages/Contracts';
 import AdminGuard      from './components/AdminGuard';
 
-// Heavy pages — lazy-loaded to split the mapbox-gl chunk (~1.4 MB) away from initial bundle
+// Lazy-loaded pages (BookingMap uses Leaflet — code-split on /booking)
 const Booking           = lazy(() => import('./pages/Booking'));
 const RegisterArtisan   = lazy(() => import('./pages/RegisterArtisan'));
 const ArtisanPortfolio  = lazy(() => import('./pages/ArtisanPortfolio'));
