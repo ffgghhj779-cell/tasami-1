@@ -125,8 +125,21 @@ export function validatePhone(raw: string): PhoneValidationResult {
 }
 
 /** E.164 format for Firebase Phone Auth (+966… or +20…). */
-export function formatPhoneForFirebaseAuth(raw: string): string {
-  const check = validatePhone(raw);
+export function formatPhoneForFirebaseAuth(
+  raw: string,
+  country?: 'EG' | 'SA',
+): string {
+  let input = raw.trim();
+  const digits = cleanPhoneDigits(input);
+
+  if (country === 'EG' && digits && !digits.startsWith('20') && !input.startsWith('0')) {
+    input = digits.startsWith('1') ? `0${digits}` : `0${digits}`;
+  }
+  if (country === 'SA' && digits && !digits.startsWith('966') && !input.startsWith('0')) {
+    input = digits.startsWith('5') ? `0${digits}` : `0${digits}`;
+  }
+
+  const check = validatePhone(input);
   if (!check.valid || !check.normalized) return '';
   return `+${check.normalized}`;
 }

@@ -2,67 +2,59 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   RecaptchaVerifier,
-  onAuthStateChanged,
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from 'firebase/auth';
-import { LogIn, Phone, Volume2, AlertCircle } from 'lucide-react';
+import { LogIn, Phone, Mail, Volume2, AlertCircle, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
 import {
   isVerifiedUser,
+  mapEmailAuthError,
   mapGoogleAuthError,
-  resolveGoogleRedirectResult,
+  mapPhoneAuthError,
+  registerWithEmail,
+  signInWithEmail,
   signInWithGoogle,
 } from '../core/auth';
 import { formatPhoneForFirebaseAuth, validatePhone } from '../core/phone';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
+import { useAuthReady } from '../hooks/useAuthReady';
 import { ButtonShimmer } from '../components/ui';
 
+type AuthMode = 'phone' | 'email';
 type PhoneStep = 'input' | 'otp';
+type EmailMode = 'login' | 'register';
+type CountryCode = 'EG' | 'SA';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/home';
   const { i18n } = useTranslation();
+  const { ready, user } = useAuthReady();
+
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationRef = useRef<ConfirmationResult | null>(null);
 
+  const [authMode, setAuthMode] = useState<AuthMode>('phone');
+  const [country, setCountry] = useState<CountryCode>('EG');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('input');
+  const [emailMode, setEmailMode] = useState<EmailMode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    let mounted = true;
-
-    resolveGoogleRedirectResult()
-      .then(user => {
-        if (mounted && isVerifiedUser(user)) {
-          navigate(returnTo, { replace: true });
-        }
-      })
-      .catch(err => {
-        if (!mounted) return;
-        const message = mapGoogleAuthError((err as { code?: string }).code);
-        if (message) setError(message);
-      });
-
-    const unsub = onAuthStateChanged(auth, user => {
-      if (isVerifiedUser(user)) {
-        navigate(returnTo, { replace: true });
-      }
-    });
-
-    return () => {
-      mounted = false;
-      unsub();
-    };
-  }, [navigate, returnTo]);
+    if (ready && isVerifiedUser(user)) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [ready, user, navigate, returnTo]);
 
   useEffect(() => {
     return () => {
@@ -84,7 +76,11 @@ export default function Login() {
     const verifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
       size: 'invisible',
       callback: () => {},
-      'expired-callback': () => setError('انتهت صلاحية التحقق. حاول مجدداً.'),
+      'expired-callback': () => {
+        recaptchaVerifierRef.current?.clear();
+        recaptchaVerifierRef.current = null;
+        setError('انتهت صلاحية التحقق. أعد تحميل الصفحة.');
+      },
     });
     recaptchaVerifierRef.current = verifier;
     return verifier;
@@ -94,9 +90,11 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await signInWithGoogle();
-      // redirect flow navigates away; popup flow continues here
-      haptic('success');
+      const mode = await signInWithGoogle();
+      if (mode === 'popup' && isVerifiedUser(auth.currentUser)) {
+        haptic('success');
+        navigate(returnTo, { replace: true });
+      }
     } catch (err) {
       const message = mapGoogleAuthError((err as { code?: string }).code);
       if (message) {
@@ -116,7 +114,7 @@ export default function Login() {
       return;
     }
 
-    const e164 = formatPhoneForFirebaseAuth(phone.trim());
+    const e164 = formatPhoneForFirebaseAuth(phone.trim(), country);
     if (!e164) {
       setError('أدخل رقم جوال مصري (010…) أو سعودي (05…) صحيح');
       haptic('error');
@@ -130,10 +128,10 @@ export default function Login() {
       confirmationRef.current = await signInWithPhoneNumber(auth, e164, verifier);
       setPhoneStep('otp');
       haptic('light');
-    } catch {
+    } catch (err) {
       recaptchaVerifierRef.current?.clear();
       recaptchaVerifierRef.current = null;
-      setError('تعذّر إرسال رمز التحقق. تأكد من تفعيل Phone Auth في Firebase Console.');
+      setError(mapPhoneAuthError((err as { code?: string }).code));
       haptic('error');
     } finally {
       setLoading(false);
@@ -161,6 +159,43 @@ export default function Login() {
     }
   };
 
+  const handleEmailSubmit = async () => {
+    if (!email.trim() || !password) {
+      setError('أدخل البريد الإلكتروني وكلمة المرور.');
+      haptic('error');
+      return;
+    }
+    if (password.length < 6) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+      haptic('error');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      if (emailMode === 'register') {
+        await registerWithEmail(email, password);
+      } else {
+        await signInWithEmail(email, password);
+      }
+      haptic('success');
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      setError(mapEmailAuthError((err as { code?: string }).code));
+      haptic('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchAuthMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setError('');
+    setPhoneStep('input');
+    setOtp('');
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary relative">
       <div className="absolute top-0 start-0 w-full h-1/3 bg-text-primary/[0.06] pointer-events-none" />
@@ -177,7 +212,25 @@ export default function Login() {
             <Volume2 className="w-4 h-4 text-text-secondary" />
           </button>
         </h2>
-        <p className="text-sm text-text-secondary mb-6">خطوة واحدة للوصول لخدماتنا</p>
+        <p className="text-sm text-text-secondary mb-4">خطوة واحدة للوصول لخدماتنا</p>
+
+        {/* Mode toggle */}
+        <div className="flex gap-2 mb-5 p-1 bg-bg-primary rounded-xl border border-border/50">
+          <button
+            type="button"
+            onClick={() => switchAuthMode('phone')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${authMode === 'phone' ? 'bg-accent text-white shadow-sm' : 'text-text-secondary'}`}
+          >
+            جوال
+          </button>
+          <button
+            type="button"
+            onClick={() => switchAuthMode('email')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${authMode === 'email' ? 'bg-accent text-white shadow-sm' : 'text-text-secondary'}`}
+          >
+            بريد إلكتروني
+          </button>
+        </div>
 
         {error && (
           <div role="alert" className="flex items-center gap-2 text-danger text-xs font-bold mb-4 text-start bg-danger/8 border border-danger/20 rounded-xl p-3">
@@ -186,75 +239,165 @@ export default function Login() {
           </div>
         )}
 
-        {phoneStep === 'input' ? (
-          <>
-            <div className="text-start mb-6">
-              <label className="text-sm font-bold text-text-primary mb-2 block">رقم الجوال</label>
-              <div className="relative">
-                <input
-                  dir="ltr"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="05xxxxxxxx أو 010xxxxxxxx"
-                  value={phone}
-                  onChange={e => { setPhone(e.target.value); setError(''); }}
-                  disabled={loading}
-                  className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-11 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 text-end placeholder:text-end disabled:opacity-60"
-                />
-                <Phone className="absolute start-3.5 top-4 w-4.5 h-4.5 text-text-secondary" />
+        {authMode === 'phone' ? (
+          phoneStep === 'input' ? (
+            <>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => { setCountry('EG'); setError(''); }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg border ${country === 'EG' ? 'border-accent bg-accent/10 text-accent' : 'border-border/60 text-text-secondary'}`}
+                >
+                  🇪🇬 مصر (+20)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCountry('SA'); setError(''); }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg border ${country === 'SA' ? 'border-accent bg-accent/10 text-accent' : 'border-border/60 text-text-secondary'}`}
+                >
+                  🇸🇦 السعودية (+966)
+                </button>
               </div>
-              <p className="text-[11px] text-text-secondary mt-2 leading-relaxed">
-                يدعم الأرقام السعودية (05…) والمصرية (010/011/012/015)
-              </p>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleSendOtp}
-              disabled={loading || !phone.trim()}
-              className={`btn-accent w-full py-3.5 mb-6 text-base disabled:opacity-60 flex items-center justify-center ${loading ? 'btn-loading' : ''}`}
-            >
-              <ButtonShimmer loading={loading}>إرسال رمز التحقق</ButtonShimmer>
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-start mb-6">
-              <label className="text-sm font-bold text-text-primary mb-2 block">رمز التحقق (OTP)</label>
-              <input
-                dir="ltr"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                disabled={loading}
-                className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 px-4 text-text-primary font-bold tracking-[0.3em] text-center focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 disabled:opacity-60"
-              />
+              <div className="text-start mb-6">
+                <label className="text-sm font-bold text-text-primary mb-2 block">رقم الجوال</label>
+                <div className="relative">
+                  <span className="absolute start-3.5 top-3.5 text-xs font-bold text-text-secondary pointer-events-none">
+                    {country === 'EG' ? '+20' : '+966'}
+                  </span>
+                  <input
+                    dir="ltr"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder={country === 'EG' ? '10xxxxxxxx' : '5xxxxxxxx'}
+                    value={phone}
+                    onChange={e => { setPhone(e.target.value); setError(''); }}
+                    disabled={loading}
+                    className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-14 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 text-end disabled:opacity-60"
+                  />
+                  <Phone className="absolute end-3.5 top-4 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-text-secondary mt-2 leading-relaxed">
+                  {country === 'EG'
+                    ? 'مصر: 010 / 011 / 012 / 015 — يُرسل كـ +20…'
+                    : 'السعودية: 05x — يُرسل كـ +966…'}
+                </p>
+              </div>
+
               <button
                 type="button"
-                onClick={() => { setPhoneStep('input'); setOtp(''); setError(''); }}
-                className="text-xs text-accent font-bold mt-2 hover:underline"
+                onClick={handleSendOtp}
+                disabled={loading || !phone.trim()}
+                className={`btn-accent w-full py-3.5 mb-4 text-base disabled:opacity-60 flex items-center justify-center ${loading ? 'btn-loading' : ''}`}
               >
-                تغيير رقم الجوال
+                <ButtonShimmer loading={loading}>إرسال رمز التحقق</ButtonShimmer>
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-start mb-6">
+                <label className="text-sm font-bold text-text-primary mb-2 block">رمز التحقق (OTP)</label>
+                <input
+                  dir="ltr"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                  disabled={loading}
+                  className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 px-4 text-text-primary font-bold tracking-[0.3em] text-center focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setPhoneStep('input'); setOtp(''); setError(''); }}
+                  className="text-xs text-accent font-bold mt-2 hover:underline"
+                >
+                  تغيير رقم الجوال
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={loading || otp.length < 6}
+                className={`btn-accent w-full py-3.5 mb-4 text-base disabled:opacity-60 flex items-center justify-center ${loading ? 'btn-loading' : ''}`}
+              >
+                <ButtonShimmer loading={loading}>تأكيد الرمز</ButtonShimmer>
+              </button>
+            </>
+          )
+        ) : (
+          <>
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => { setEmailMode('login'); setError(''); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border ${emailMode === 'login' ? 'border-accent bg-accent/10 text-accent' : 'border-border/60 text-text-secondary'}`}
+              >
+                تسجيل الدخول
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmailMode('register'); setError(''); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border ${emailMode === 'register' ? 'border-accent bg-accent/10 text-accent' : 'border-border/60 text-text-secondary'}`}
+              >
+                إنشاء حساب
               </button>
             </div>
 
+            <div className="text-start mb-4">
+              <label className="text-sm font-bold text-text-primary mb-2 block">البريد الإلكتروني</label>
+              <div className="relative">
+                <input
+                  dir="ltr"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setError(''); }}
+                  disabled={loading}
+                  className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-11 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 disabled:opacity-60"
+                />
+                <Mail className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="text-start mb-6">
+              <label className="text-sm font-bold text-text-primary mb-2 block">كلمة المرور</label>
+              <div className="relative">
+                <input
+                  dir="ltr"
+                  type="password"
+                  autoComplete={emailMode === 'register' ? 'new-password' : 'current-password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  disabled={loading}
+                  className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-11 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 disabled:opacity-60"
+                />
+                <Lock className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={handleVerifyOtp}
-              disabled={loading || otp.length < 6}
-              className={`btn-accent w-full py-3.5 mb-6 text-base disabled:opacity-60 flex items-center justify-center ${loading ? 'btn-loading' : ''}`}
+              onClick={handleEmailSubmit}
+              disabled={loading || !email.trim() || !password}
+              className={`btn-accent w-full py-3.5 mb-4 text-base disabled:opacity-60 flex items-center justify-center ${loading ? 'btn-loading' : ''}`}
             >
-              <ButtonShimmer loading={loading}>تأكيد الرمز</ButtonShimmer>
+              <ButtonShimmer loading={loading}>
+                {emailMode === 'register' ? 'إنشاء حساب' : 'تسجيل الدخول'}
+              </ButtonShimmer>
             </button>
           </>
         )}
 
-        <div ref={recaptchaRef} className="hidden" aria-hidden="true" />
+        {/* reCAPTCHA — must stay in DOM (not display:none) for Phone Auth */}
+        <div ref={recaptchaRef} className="fixed bottom-0 start-0 opacity-0 pointer-events-none w-px h-px overflow-hidden" aria-hidden="true" />
 
         <div className="flex items-center gap-4 my-2">
           <div className="flex-1 h-px bg-border" />
