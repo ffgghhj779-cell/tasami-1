@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Volume2, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
 import { speak, toEasternArabic } from '../core/utils';
-import { auth, db } from '../core/firebase';
+import { requireVerifiedUser } from '../core/auth';
+import { db } from '../core/firebase';
 import { PageHeader, Toast } from '../components/ui';
 
 const SPECIALTIES = [
@@ -71,11 +71,7 @@ export default function RegisterArtisan() {
     setError('');
 
     try {
-      let user = auth.currentUser;
-      if (!user) {
-        const cred = await signInAnonymously(auth);
-        user = cred.user;
-      }
+      const user = requireVerifiedUser();
 
       await setDoc(doc(db, 'artisans', user.uid), {
         userId: user.uid,

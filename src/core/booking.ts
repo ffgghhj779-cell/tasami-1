@@ -15,6 +15,9 @@ export interface BookingDraft {
   /** Digits-only international format for WhatsApp/Ultramsg (no '+') */
   phoneNormalized?: string;
   customerName?: string;
+  contactEmail?: string;
+  /** National ID or passport — optional */
+  nationalId?: string;
 }
 
 /** Snapshot persisted after successful Firestore submit — consumed by /success */

@@ -6,8 +6,8 @@ import {
   serverTimestamp,
   where,
 } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { auth, db } from './firebase';
+import { requireVerifiedUser } from './auth';
+import { db } from './firebase';
 
 export interface ReviewDocument {
   bookingDocId: string;
@@ -32,12 +32,6 @@ export interface ReviewRecord {
   createdAtMs: number;
 }
 
-async function ensureAuth() {
-  if (auth.currentUser) return auth.currentUser;
-  const cred = await signInAnonymously(auth);
-  return cred.user;
-}
-
 export async function submitReview(input: {
   bookingDocId: string;
   bookingId: string;
@@ -46,7 +40,7 @@ export async function submitReview(input: {
   comment: string;
   userName?: string;
 }): Promise<void> {
-  const user = await ensureAuth();
+  const user = requireVerifiedUser();
 
   const existing = await getDocs(
     query(

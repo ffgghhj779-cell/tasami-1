@@ -47,26 +47,37 @@ export function invoiceFromBookingRow(row: UserBookingRow): InvoiceData {
   };
 }
 
-/** Render a hidden RTL HTML invoice via html2canvas → single-page PDF image. */
+/**
+ * Canvas-first PDF — snapshot entire RTL invoice div as image; no native PDF text.
+ */
 export async function downloadInvoicePdf(data: InvoiceData): Promise<void> {
-  const element = buildInvoiceElement(data);
+  const element = await buildInvoiceElement(data);
   document.body.appendChild(element);
 
   try {
+    // Allow layout + font rasterization before capture
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
+      width: element.offsetWidth,
+      height: element.scrollHeight,
+      windowWidth: element.offsetWidth,
+      windowHeight: element.scrollHeight,
     });
 
-    const imgData = canvas.toDataURL('image/png');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
-    const imgH = (canvas.height * pageW) / canvas.width;
 
-    doc.addImage(imgData, 'PNG', 0, 0, pageW, Math.min(imgH, pageH));
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const renderH = Math.min(imgH, pageH);
+
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, renderH, undefined, 'FAST');
     doc.save(`Tasami-Invoice-${data.bookingId}.pdf`);
   } finally {
     document.body.removeChild(element);

@@ -3,9 +3,10 @@ import {
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { auth, db } from './firebase';
-import { normalizePhoneForWhatsApp } from './phone';
+import { db } from './firebase';
+import { requireVerifiedUser } from './auth';
+import { normalizePhoneForWhatsApp, validatePhone } from './phone';
+import { validateEmail, validateFullName, validateNationalId } from './validation';
 import {
   calculatePricing,
   clearBookingDraft,
@@ -70,7 +71,9 @@ function buildFirestoreDoc(
     status: 'confirmed' as const,
     serviceType: draft.serviceType ?? 'تنظيف منزلي شامل',
     serviceHours: hours,
-    customerName: draft.customerName ?? '',
+    customerName: draft.customerName?.trim() ?? '',
+    contactEmail: draft.contactEmail?.trim() ?? '',
+    nationalId: draft.nationalId?.trim() ?? '',
     phone,
     address: {
       line: draft.addressLine ?? '',
@@ -94,14 +97,22 @@ function buildFirestoreDoc(
   };
 }
 
-async function ensureAuthenticatedUser() {
-  if (auth.currentUser) return auth.currentUser;
-  const credential = await signInAnonymously(auth);
-  return credential.user;
+function assertBookingProfile(draft: BookingDraft): void {
+  const nameCheck = validateFullName(draft.customerName ?? '');
+  if (!nameCheck.valid) throw new Error(nameCheck.error ?? 'الاسم الكامل مطلوب');
+
+  const emailCheck = validateEmail(draft.contactEmail ?? '');
+  if (!emailCheck.valid) throw new Error(emailCheck.error ?? 'البريد الإلكتروني مطلوب');
+
+  const idCheck = validateNationalId(draft.nationalId ?? '');
+  if (!idCheck.valid) throw new Error(idCheck.error ?? 'رقم الهوية غير صالح');
+
+  const phoneCheck = validatePhone(draft.phone ?? '');
+  if (!phoneCheck.valid) throw new Error(phoneCheck.error ?? 'رقم الجوال غير صالح');
 }
 
 /**
- * Reads the sessionStorage draft, authenticates anonymously if needed,
+ * Reads the sessionStorage draft, requires Google/Phone auth,
  * writes to Firestore `bookings`, saves a success snapshot, and clears the draft.
  * Caller must acquire the submit lock before invoking (see Confirm.tsx).
  */
@@ -119,7 +130,8 @@ export async function submitBooking(): Promise<string> {
   }
 
   try {
-    const user = await ensureAuthenticatedUser();
+    const user = requireVerifiedUser();
+    assertBookingProfile(draft);
     const bookingId = generateBookingId();
     const docData = buildFirestoreDoc(draft, bookingId, user.uid);
 
@@ -131,7 +143,7 @@ export async function submitBooking(): Promise<string> {
 
     notifyMakeWebhook({
       bookingId,
-      customerName: draft.customerName || user.displayName || '',
+      customerName: docData.customerName || user.displayName || '',
       phone: docData.phone || normalizePhoneForWhatsApp(user.phoneNumber ?? ''),
       serviceType: docData.serviceType,
       schedule: `${docData.schedule.date} | ${docData.schedule.timeSlotLabel}`,

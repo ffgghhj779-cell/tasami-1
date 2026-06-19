@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   GoogleAuthProvider,
   RecaptchaVerifier,
+  onAuthStateChanged,
   signInWithPhoneNumber,
   signInWithPopup,
   type ConfirmationResult,
@@ -10,6 +11,7 @@ import {
 import { LogIn, Phone, Volume2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
+import { isVerifiedUser } from '../core/auth';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
 import { ButtonShimmer } from '../components/ui';
@@ -21,6 +23,8 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { from?: string } | null)?.from ?? '/home';
   const { i18n } = useTranslation();
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -31,6 +35,15 @@ export default function Login() {
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('input');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      if (isVerifiedUser(user)) {
+        navigate(returnTo, { replace: true });
+      }
+    });
+    return unsub;
+  }, [navigate, returnTo]);
 
   useEffect(() => {
     return () => {
@@ -71,7 +84,7 @@ export default function Login() {
     setError('');
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate('/home', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err) {
       const code = (err as { code?: string }).code;
       if (code === 'auth/popup-closed-by-user') {
@@ -122,7 +135,7 @@ export default function Login() {
     try {
       await confirmationRef.current.confirm(otp.trim());
       haptic('success');
-      navigate('/home', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch {
       setError('رمز التحقق غير صحيح. حاول مجدداً.');
       haptic('error');

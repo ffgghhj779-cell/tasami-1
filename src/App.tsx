@@ -14,6 +14,7 @@ import Success         from './pages/Success';
 import Contracts       from './pages/Contracts';
 import Profile         from './pages/Profile';
 import AdminGuard      from './components/AdminGuard';
+import AuthGuard       from './components/AuthGuard';
 
 // Lazy-loaded pages (BookingMap uses Leaflet — code-split on /booking)
 const Booking           = lazy(() => import('./pages/Booking'));
@@ -33,13 +34,13 @@ const AnimatedRoutes = memo(function AnimatedRoutes() {
           <Route path="/"               element={<LangSelect />}     />
           <Route path="/home"           element={<Home />}           />
           <Route path="/login"          element={<Login />}          />
-          <Route path="/profile"        element={<Profile />}        />
-          <Route path="/service/:id"    element={<ServiceDetails />} />
-          <Route path="/booking"        element={<Booking />}        />
-          <Route path="/confirm"        element={<Confirm />}        />
-          <Route path="/success"        element={<Success />}        />
+          <Route path="/profile"        element={<AuthGuard><Profile /></AuthGuard>} />
+          <Route path="/service/:id"    element={<AuthGuard><ServiceDetails /></AuthGuard>} />
+          <Route path="/booking"        element={<AuthGuard><Booking /></AuthGuard>} />
+          <Route path="/confirm"        element={<AuthGuard><Confirm /></AuthGuard>} />
+          <Route path="/success"        element={<AuthGuard><Success /></AuthGuard>} />
           <Route path="/contracts"      element={<Contracts />}      />
-          <Route path="/register-artisan" element={<RegisterArtisan />} />
+          <Route path="/register-artisan" element={<AuthGuard><RegisterArtisan /></AuthGuard>} />
           <Route path="/artisan/:id"    element={<ArtisanPortfolio />} />
           <Route path="/how"            element={<StaticContent />}  />
           <Route path="/terms"          element={<StaticContent />}  />

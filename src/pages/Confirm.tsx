@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert,
@@ -11,6 +11,9 @@ import {
   Sparkles,
   AlertCircle,
   Phone,
+  User,
+  Mail,
+  CreditCard,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
@@ -26,6 +29,7 @@ import {
 } from '../core/booking';
 import { submitBooking } from '../core/bookings';
 import { validatePhone } from '../core/phone';
+import { validateEmail, validateFullName, validateNationalId } from '../core/validation';
 import { auth } from '../core/firebase';
 import { haptic } from '../core/haptics';
 import { ButtonShimmer } from '../components/ui';
@@ -62,6 +66,17 @@ export default function Confirm() {
   const [draft] = useState(() => loadBookingDraft());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [fullName, setFullName] = useState(() => {
+    const fromDraft = loadBookingDraft()?.customerName;
+    if (fromDraft) return fromDraft;
+    return auth.currentUser?.displayName ?? '';
+  });
+  const [email, setEmail] = useState(() => {
+    const fromDraft = loadBookingDraft()?.contactEmail;
+    if (fromDraft) return fromDraft;
+    return auth.currentUser?.email ?? '';
+  });
+  const [nationalId, setNationalId] = useState(() => loadBookingDraft()?.nationalId ?? '');
   const [phone, setPhone] = useState(() => {
     const fromDraft = loadBookingDraft()?.phone;
     if (fromDraft) return fromDraft;
@@ -69,7 +84,24 @@ export default function Confirm() {
     if (authPhone) return authPhone.replace(/\D/g, '').replace(/^966/, '0');
     return '';
   });
+  const [fullNameError, setFullNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [nationalIdError, setNationalIdError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+
+  const formValidation = useMemo(() => {
+    const name = validateFullName(fullName);
+    const mail = validateEmail(email);
+    const id = validateNationalId(nationalId);
+    const tel = validatePhone(phone);
+    return {
+      valid: name.valid && mail.valid && id.valid && tel.valid,
+      name,
+      mail,
+      id,
+      tel,
+    };
+  }, [fullName, email, nationalId, phone]);
 
   const hours = draft?.serviceHours ?? 2;
   const pricing = calculatePricing(hours);
@@ -96,14 +128,20 @@ export default function Confirm() {
   };
 
   const handleConfirm = async () => {
-    if (submitting || isBookingAlreadySubmitted()) return;
-
-    const phoneCheck = validatePhone(phone);
-    if (!phoneCheck.valid) {
-      setPhoneError(phoneCheck.error ?? 'رقم الجوال غير صالح');
-      haptic('error');
+    if (submitting || isBookingAlreadySubmitted() || !formValidation.valid) {
+      if (!formValidation.valid) {
+        setFullNameError(formValidation.name.error ?? '');
+        setEmailError(formValidation.mail.error ?? '');
+        setNationalIdError(formValidation.id.error ?? '');
+        setPhoneError(formValidation.tel.error ?? '');
+        haptic('error');
+      }
       return;
     }
+
+    setFullNameError('');
+    setEmailError('');
+    setNationalIdError('');
     setPhoneError('');
 
     if (!acquireSubmitLock()) {
@@ -112,9 +150,11 @@ export default function Confirm() {
     }
 
     saveBookingDraft({
+      customerName: fullName.trim(),
+      contactEmail: email.trim(),
+      nationalId: nationalId.trim(),
       phone: phone.trim(),
-      phoneNormalized: phoneCheck.normalized,
-      customerName: auth.currentUser?.displayName ?? '',
+      phoneNormalized: formValidation.tel.normalized,
     });
 
     setSubmitting(true);
@@ -200,36 +240,112 @@ export default function Confirm() {
             </div>
           </section>
 
-          {/* ── Contact (WhatsApp) ── */}
+          {/* ── Personal details (mandatory) ── */}
           <section className="glass-card rounded-[28px] p-5 shadow-card">
             <SectionHeading
-              title="رقم الجوال للتواصل"
-              onSpeak={e => handleSpeak(e, 'رقم الجوال للتواصل عبر واتساب')}
+              title="بياناتك الشخصية"
+              onSpeak={e => handleSpeak(e, 'بياناتك الشخصية مطلوبة لإتمام الحجز')}
             />
-            <div className="relative">
-              <input
-                id="booking-phone"
-                type="tel"
-                required
-                inputMode="tel"
-                autoComplete="tel"
-                value={phone}
-                onChange={e => { setPhone(e.target.value); setPhoneError(''); setSubmitError(''); }}
-                placeholder="05xxxxxxxx"
-                dir="ltr"
-                className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
-                  phoneError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
-                }`}
-              />
-              <Phone className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="booking-full-name" className="text-xs font-bold text-text-secondary block mb-1.5">
+                  الاسم الكامل <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="booking-full-name"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={fullName}
+                    onChange={e => { setFullName(e.target.value); setFullNameError(''); setSubmitError(''); }}
+                    placeholder="الاسم الثلاثي"
+                    className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
+                      fullNameError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
+                    }`}
+                  />
+                  <User className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+                {fullNameError && <p role="alert" className="text-xs text-danger font-bold mt-1.5">{fullNameError}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="booking-email" className="text-xs font-bold text-text-secondary block mb-1.5">
+                  البريد الإلكتروني <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="booking-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setEmailError(''); setSubmitError(''); }}
+                    placeholder="name@example.com"
+                    dir="ltr"
+                    className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
+                      emailError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
+                    }`}
+                  />
+                  <Mail className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+                {emailError && <p role="alert" className="text-xs text-danger font-bold mt-1.5">{emailError}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="booking-national-id" className="text-xs font-bold text-text-secondary block mb-1.5">
+                  رقم الهوية / الجواز <span className="text-text-secondary/70 font-medium">(اختياري)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="booking-national-id"
+                    type="text"
+                    autoComplete="off"
+                    value={nationalId}
+                    onChange={e => { setNationalId(e.target.value); setNationalIdError(''); setSubmitError(''); }}
+                    placeholder="اختياري"
+                    dir="ltr"
+                    className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
+                      nationalIdError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
+                    }`}
+                  />
+                  <CreditCard className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+                {nationalIdError && <p role="alert" className="text-xs text-danger font-bold mt-1.5">{nationalIdError}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="booking-phone" className="text-xs font-bold text-text-secondary block mb-1.5">
+                  رقم الجوال <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="booking-phone"
+                    type="tel"
+                    required
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={e => { setPhone(e.target.value); setPhoneError(''); setSubmitError(''); }}
+                    placeholder="05xxxxxxxx"
+                    dir="ltr"
+                    className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
+                      phoneError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
+                    }`}
+                  />
+                  <Phone className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+                {phoneError ? (
+                  <p role="alert" className="text-xs text-danger font-bold mt-1.5">{phoneError}</p>
+                ) : (
+                  <p className="text-[11px] text-text-secondary mt-1.5">
+                    يُستخدم لإرسال تأكيد الحجز عبر واتساب (مصر أو السعودية)
+                  </p>
+                )}
+              </div>
             </div>
-            {phoneError ? (
-              <p role="alert" className="text-xs text-danger font-bold mt-2">{phoneError}</p>
-            ) : (
-              <p className="text-[11px] text-text-secondary mt-2">
-                يُستخدم لإرسال تأكيد الحجز عبر واتساب (بدون +)
-              </p>
-            )}
           </section>
 
           {/* ── Price Breakdown ── */}
@@ -345,8 +461,8 @@ export default function Confirm() {
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={submitting}
-          className={`btn-accent w-full text-lg py-4 disabled:opacity-70 flex items-center justify-center ${submitting ? 'btn-loading' : ''}`}
+          disabled={submitting || !formValidation.valid}
+          className={`btn-accent w-full text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${submitting ? 'btn-loading' : ''}`}
         >
           <ButtonShimmer loading={submitting}>
             {submitting ? 'جاري تأكيد الحجز…' : 'تأكيد الدفع والحجز'}

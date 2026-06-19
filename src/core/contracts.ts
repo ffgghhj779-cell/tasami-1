@@ -1,6 +1,6 @@
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { auth, db } from './firebase';
+import { requireVerifiedUser } from './auth';
+import { db } from './firebase';
 
 export async function submitContractQuote(input: {
   packageType: string;
@@ -8,11 +8,7 @@ export async function submitContractQuote(input: {
   phone: string;
   requiredService: string;
 }): Promise<void> {
-  let user = auth.currentUser;
-  if (!user) {
-    const cred = await signInAnonymously(auth);
-    user = cred.user;
-  }
+  const user = requireVerifiedUser();
 
   const message = [
     `الشركة: ${input.companyName}`,
