@@ -33,9 +33,9 @@
 
 html {
   --font-active: var(--font-arabic);
-  height: auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  overflow: hidden;
+  touch-action: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -54,14 +54,20 @@ html.font-arabic {
 body {
   font-family: var(--font-active);
   @apply bg-bg-primary text-text-primary;
-  min-height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  touch-action: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
+}
+
+#root,
+#root > * {
+  height: 100%;
+  touch-action: auto;
 }
 
 /* Arabic / Urdu typography rhythm */
@@ -76,11 +82,19 @@ html.font-urdu {
   line-height: 1.85;
 }
 
-/* Native app shell — document scrolls naturally; no global overscroll lock */
+/* App shell — the ONE native scroll surface for the whole app */
 .app-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
-  -webkit-overflow-scrolling: touch;
+  touch-action: auto;
+}
+
+.app-scroll-root {
+  height: 100%;
+  max-height: 100dvh;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: auto !important;
+  overscroll-behavior-y: auto;
 }
 
 .select-text {
@@ -135,24 +149,11 @@ label[for] {
 }
 
 @layer utilities {
-  /* Scrollable regions — momentum on iOS; never use on html/body */
-  .native-scroll {
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
-    min-height: 0;
-  }
-
-  /* Primary page content — use on flex-1 scroll columns */
+  /* Legacy alias — no touch interception; browser handles scroll */
+  .native-scroll,
   .main-content-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    overflow: visible;
+    touch-action: auto;
   }
 
   /* Modals / sheets only — trap overscroll inside overlay */
@@ -329,9 +330,8 @@ label[for] {
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
-  /* ─── Page route transition (GPU: opacity + transform only) ─── */
+  /* ─── Page route transition (opacity only — no transform layer) ─── */
   .page-enter {
-    @apply gpu-layer will-gpu;
     animation: page-enter 0.32s var(--ease-out-expo) both;
   }
 }
@@ -341,8 +341,8 @@ label[for] {
 }
 
 @keyframes page-enter {
-  0%   { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes modal-fade-in {
@@ -365,7 +365,6 @@ label[for] {
   .page-enter,
   .modal-sheet {
     opacity: 1;
-    transform: translateZ(0);
   }
 }
 

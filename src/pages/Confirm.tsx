@@ -185,7 +185,7 @@ export default function Confirm() {
         onSpeak={e => handleSpeak(e, 'تأكيد الطلب')}
       />
 
-      <div className="main-content-scroll">
+      <div className="flex-1">
         <div className="p-4 pb-32 space-y-4">
 
           {/* ── Aggregated Summary ── */}

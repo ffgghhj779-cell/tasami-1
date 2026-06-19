@@ -47,7 +47,7 @@ export default function ArtisanPortfolio() {
         onSpeak={e => handleSpeak(e, 'الملف الشخصي للحرفي')}
       />
 
-      <div className="main-content-scroll p-5 pb-12">
+      <div className="flex-1 p-5 pb-12">
         <div className="bg-bg-card border border-border/50 rounded-[24px] p-6 shadow-card mb-6 text-center relative overflow-hidden">
           <div className="absolute -top-6 -end-6 w-24 h-24 rounded-full bg-accent/8 blur-2xl pointer-events-none" />
           <div className="w-24 h-24 rounded-full bg-border mx-auto mb-4 relative">

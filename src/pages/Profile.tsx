@@ -166,7 +166,7 @@ export default function Profile() {
         backTo="/home"
       />
 
-      <div className="main-content-scroll p-4 space-y-5">
+      <div className="flex-1 p-4 space-y-5">
         <section className="glass-card rounded-[28px] p-5 shadow-card relative overflow-hidden">
           <div className="absolute -top-8 -end-8 w-28 h-28 rounded-full bg-accent/10 blur-2xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">

@@ -6,7 +6,7 @@ import { WifiOff } from 'lucide-react';
 export const OfflineBanner = memo(function OfflineBanner() {
   const { t } = useTranslation();
   return (
-    <div className="gpu-layer bg-danger text-white text-xs font-bold p-2 text-center flex items-center justify-center gap-2 sticky z-50 top-0">
+    <div className="bg-danger text-white text-xs font-bold p-2 text-center flex items-center justify-center gap-2 sticky z-50 top-0">
       <WifiOff className="w-4 h-4" />
       {t('common.offlineBanner')}
     </div>

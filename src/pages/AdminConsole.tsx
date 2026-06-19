@@ -135,7 +135,7 @@ export default function AdminConsole() {
         }
       />
 
-      <div className="main-content-scroll p-4 pb-10 space-y-4">
+      <div className="flex-1 p-4 pb-10 space-y-4">
 
         {/* Search & Filter */}
         <section className="glass-card rounded-[24px] p-4 shadow-card">

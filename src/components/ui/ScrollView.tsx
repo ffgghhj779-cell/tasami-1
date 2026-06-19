@@ -5,11 +5,7 @@ interface ScrollViewProps {
   className?: string;
 }
 
-/** Native momentum scroll — no GPU transform layer (avoids iOS touch-scroll bugs). */
+/** Plain wrapper — native browser scroll only; no touch interception. */
 export const ScrollView = memo(function ScrollView({ children, className = '' }: ScrollViewProps) {
-  return (
-    <div className={`native-scroll main-content-scroll ${className}`.trim()}>
-      {children}
-    </div>
-  );
+  return <div className={className.trim()}>{children}</div>;
 });
