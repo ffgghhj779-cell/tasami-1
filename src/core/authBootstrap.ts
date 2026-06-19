@@ -1,7 +1,18 @@
-import { browserLocalPersistence, getRedirectResult, setPersistence } from 'firebase/auth';
+import { getRedirectResult, type User } from 'firebase/auth';
 import { auth } from './firebase';
 
-let bootstrapPromise: Promise<void> | null = null;
+let bootstrapPromise: Promise<User | null> | null = null;
+
+export const GOOGLE_REDIRECT_PENDING_KEY = 'tasami_google_redirect_pending';
+export const LAST_AUTH_ERROR_KEY = 'tasami_last_auth_error';
+
+export function isGoogleRedirectPending(): boolean {
+  return sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY) === '1';
+}
+
+export function clearGoogleRedirectPending(): void {
+  sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+}
 
 /** Clears cached bootstrap so bfcache / pageshow can re-run redirect handling. */
 export function resetAuthBootstrap(): void {
@@ -12,10 +23,6 @@ function isBfcacheRestore(event: Event): boolean {
   return Boolean((event as PageTransitionEvent).persisted);
 }
 
-/**
- * Mobile Safari restores OAuth return pages from bfcache without re-running
- * bootstrap — listen globally once and invalidate the cached bootstrap.
- */
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', event => {
     if (isBfcacheRestore(event)) {
@@ -25,18 +32,26 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * One-time auth bootstrap: persistence + Google redirect result.
- * Firebase allows getRedirectResult() only once per redirect — must be singleton
- * per page load (reset on bfcache via pageshow).
+ * One-time auth bootstrap: consume Google redirect result.
+ * Returns the signed-in user when this page load completes an OAuth redirect.
  */
-export function bootstrapAuth(): Promise<void> {
+export function bootstrapAuth(): Promise<User | null> {
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
-      await setPersistence(auth, browserLocalPersistence);
       try {
-        await getRedirectResult(auth);
-      } catch {
-        /* no pending redirect or already consumed */
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          clearGoogleRedirectPending();
+          return result.user;
+        }
+        return null;
+      } catch (err) {
+        const code = (err as { code?: string }).code ?? 'unknown';
+        const msg = (err as { message?: string }).message ?? String(err);
+        console.error('[bootstrapAuth] getRedirectResult failed', err);
+        sessionStorage.setItem(LAST_AUTH_ERROR_KEY, `${code}: ${msg}`);
+        clearGoogleRedirectPending();
+        return null;
       }
     })();
   }

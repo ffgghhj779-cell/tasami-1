@@ -1,6 +1,7 @@
 import { toEasternArabic } from './utils';
 
 export interface BookingDraft {
+  serviceSlug?: string;
   serviceType?: string;
   serviceHours?: number;
   longitude?: number;
@@ -31,6 +32,8 @@ export interface LastBookingSnapshot {
   address: string;
   total: number;
   totalFormatted: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 export interface BookingPricing {

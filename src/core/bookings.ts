@@ -20,6 +20,7 @@ import {
   type BookingDraft,
 } from './booking';
 import { buildWebhookPayload, notifyWebhook } from './webhook';
+import { resolveService } from './serviceCatalog';
 
 export interface BookingDocument {
   bookingId: string;
@@ -64,12 +65,15 @@ function buildFirestoreDoc(
   const hours = draft.serviceHours ?? 2;
   const pricing = calculatePricing(hours);
   const phone = draft.phoneNormalized ?? normalizePhoneForWhatsApp(draft.phone ?? '');
+  const serviceType = draft.serviceType
+    ?? (draft.serviceSlug ? resolveService(draft.serviceSlug).serviceType : 'تنظيف منزلي شامل');
 
   return {
     bookingId,
     userId,
     status: 'confirmed' as const,
-    serviceType: draft.serviceType ?? 'تنظيف منزلي شامل',
+    serviceType,
+    serviceSlug: draft.serviceSlug ?? '',
     serviceHours: hours,
     customerName: draft.customerName?.trim() ?? '',
     contactEmail: draft.contactEmail?.trim() ?? '',
@@ -162,6 +166,8 @@ export async function submitBooking(): Promise<string> {
       address,
       total: docData.pricing.total,
       totalFormatted: formatPrice(docData.pricing.total),
+      customerName: docData.customerName,
+      customerPhone: docData.phone,
     });
 
     markBookingSubmitted();

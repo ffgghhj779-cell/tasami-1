@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  browserLocalPersistence,
+  getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -14,12 +19,23 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+
+/** IndexedDB persistence — required for reliable Google redirect on mobile Safari. */
+function createAuth() {
+  try {
+    return initializeAuth(app, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+    });
+  } catch {
+    return getAuth(app);
+  }
+}
+
+export const auth = createAuth();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 /**
- * Auth persistence + Google redirect handled once in authBootstrap.ts (app mount).
- * Enable in Firebase Console → Authentication → Sign-in method:
- * - Google, Phone, Email/Password — disable Anonymous.
+ * Google redirect handled in authBootstrap.ts on app mount.
+ * Enable in Firebase Console → Authentication: Google, Phone, Email — disable Anonymous.
  */

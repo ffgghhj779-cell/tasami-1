@@ -35,7 +35,7 @@ const AnimatedRoutes = memo(function AnimatedRoutes() {
           <Route path="/"               element={<LangSelect />}     />
           <Route path="/home"           element={<Home />}           />
           <Route path="/login"          element={<Login />}          />
-          <Route path="/profile"        element={<AuthGuard><Profile /></AuthGuard>} />
+          <Route path="/profile"        element={<Profile />} />
           <Route path="/service/:id"    element={<AuthGuard><ServiceDetails /></AuthGuard>} />
           <Route path="/booking"        element={<AuthGuard><Booking /></AuthGuard>} />
           <Route path="/confirm"        element={<AuthGuard><Confirm /></AuthGuard>} />

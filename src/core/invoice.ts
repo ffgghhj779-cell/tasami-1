@@ -1,15 +1,8 @@
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import type { LastBookingSnapshot } from './booking';
 import type { UserBookingRow } from '../hooks/useUserBookings';
 import { calculatePricing } from './booking';
-import { buildInvoiceElement } from './invoiceTemplate';
-
-const INVOICE_RENDER_DELAY_MS = 500;
-
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+import { renderInvoiceCanvas } from './invoiceCanvas';
 
 export interface InvoiceData {
   bookingId: string;
@@ -21,6 +14,8 @@ export interface InvoiceData {
   subtotal: number;
   vat: number;
   total: number;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 export function invoiceFromSnapshot(snapshot: LastBookingSnapshot): InvoiceData {
@@ -35,6 +30,8 @@ export function invoiceFromSnapshot(snapshot: LastBookingSnapshot): InvoiceData 
     subtotal: pricing.subtotal,
     vat: pricing.vat,
     total: snapshot.total,
+    customerName: snapshot.customerName,
+    customerPhone: snapshot.customerPhone,
   };
 }
 
@@ -50,48 +47,22 @@ export function invoiceFromBookingRow(row: UserBookingRow): InvoiceData {
     subtotal: pricing.subtotal,
     vat: pricing.vat,
     total: row.total,
+    customerName: row.customerName !== '—' ? row.customerName : undefined,
+    customerPhone: row.phone !== '—' ? row.phone : undefined,
   };
 }
 
-/**
- * Canvas-first PDF — snapshot entire RTL invoice div as image; no native PDF text.
- */
+/** PDF via Canvas 2D + Amiri font — reliable Arabic rendering on all devices. */
 export async function downloadInvoicePdf(data: InvoiceData): Promise<void> {
-  const element = await buildInvoiceElement(data);
-  Object.assign(element.style, {
-    position: 'absolute',
-    left: '-9999px',
-    top: '0',
-    opacity: '1',
-  });
-  document.body.appendChild(element);
+  const canvas = await renderInvoiceCanvas(data);
 
-  try {
-    await delay(INVOICE_RENDER_DELAY_MS);
-    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const imgW = pageW;
+  const imgH = (canvas.height * imgW) / canvas.width;
+  const renderH = Math.min(imgH, pageH);
 
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      width: element.offsetWidth,
-      height: element.scrollHeight,
-      windowWidth: element.offsetWidth,
-      windowHeight: element.scrollHeight,
-    });
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
-    const renderH = Math.min(imgH, pageH);
-
-    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, renderH, undefined, 'FAST');
-    doc.save(`Tasami-Invoice-${data.bookingId}.pdf`);
-  } finally {
-    document.body.removeChild(element);
-  }
+  doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, renderH, undefined, 'SLOW');
+  doc.save(`Tasami-Invoice-${data.bookingId}.pdf`);
 }

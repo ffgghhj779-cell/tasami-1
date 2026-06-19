@@ -17,10 +17,17 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    function isBootstrapAdminUid() {
+      return isAuthenticated() && request.auth.uid == 'mLHa4QjZOyWEvt1qflTw5fP4Cbw1';
+    }
+
     function isAdmin() {
-      return isAuthenticated()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+      return isBootstrapAdminUid()
+        || (
+          isAuthenticated()
+          && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'
+        );
     }
 
     function isArtisan() {

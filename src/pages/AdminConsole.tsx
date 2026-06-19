@@ -9,12 +9,20 @@ import {
   CheckCircle2,
   Loader2,
   ArrowLeftRight,
+  User,
+  MapPin,
+  Phone,
+  Mail,
+  CreditCard,
+  Copy,
+  ExternalLink,
+  FileJson,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
 import { PageHeader, BookingListSkeleton } from '../components/ui';
 import { STATUS_LABELS, type BookingStatus } from '../core/admin';
-import { useAdminBookings } from '../hooks/useAdminBookings';
+import { useAdminBookings, type AdminBookingRow } from '../hooks/useAdminBookings';
 
 type StatusFilter = 'all' | BookingStatus;
 
@@ -51,6 +59,227 @@ function StatusBadge({ status }: { status: BookingStatus }) {
   );
 }
 
+function DetailField({
+  label,
+  value,
+  ltr = false,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  ltr?: boolean;
+  mono?: boolean;
+}) {
+  const copy = () => {
+    if (value && value !== '—') void navigator.clipboard?.writeText(value);
+  };
+
+  return (
+    <div className="min-w-0">
+      <span className="text-text-secondary font-medium block text-[10px] mb-0.5">{label}</span>
+      <div className="flex items-start gap-1.5">
+        <span
+          dir={ltr ? 'ltr' : 'rtl'}
+          className={`font-bold text-text-primary text-xs break-all flex-1 ${mono ? 'font-mono text-[11px]' : ''}`}
+        >
+          {value || '—'}
+        </span>
+        {value && value !== '—' && (
+          <button
+            type="button"
+            onClick={copy}
+            className="p-1 rounded-md border border-border/50 hover:bg-bg-primary shrink-0"
+            aria-label={`نسخ ${label}`}
+          >
+            <Copy className="w-3 h-3 text-accent" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminBookingCard({
+  row,
+  toggling,
+  onToggle,
+}: {
+  row: AdminBookingRow;
+  toggling: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="bg-bg-card/80 border-2 border-accent/20 rounded-2xl shadow-sm overflow-hidden">
+      <div className="p-4 bg-accent/5 border-b border-accent/15">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span dir="ltr" className="text-xs font-black text-accent tracking-wider">
+            #{row.bookingIdDisplay}
+          </span>
+          <StatusBadge status={row.status} />
+        </div>
+        <p className="text-base font-black text-text-primary">{row.serviceType}</p>
+        <p className="text-sm font-bold text-text-primary mt-2">
+          {row.customerName}
+        </p>
+        <p dir="ltr" className="text-xs text-text-secondary font-mono mt-0.5">
+          {row.phone} · {row.contactEmail}
+        </p>
+      </div>
+
+      <div className="px-4 pb-4 space-y-4 pt-4">
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard?.writeText(row.exportText)}
+            className="w-full py-2.5 rounded-xl bg-accent/10 border border-accent/30 text-accent text-xs font-bold flex items-center justify-center gap-2"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            نسخ كل بيانات الطلب
+          </button>
+
+          {(row.customerName === '—' || row.phone === '—') && (
+            <p className="text-[10px] text-danger font-bold bg-danger/8 border border-danger/20 rounded-lg p-2">
+              تنبيه: بعض بيانات العميل غير مسجّلة — قد يكون حجزاً قديماً قبل تفعيل الحقول الإلزامية.
+            </p>
+          )}
+
+          <div>
+            <h3 className="text-xs font-black text-accent mb-2 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5" />
+              بيانات العميل (شخصية)
+            </h3>
+            <div className="grid grid-cols-1 gap-3 bg-bg-primary/50 rounded-xl p-3 border border-border/30">
+              <DetailField label="الاسم الكامل" value={row.customerName} />
+              <DetailField label="رقم الجوال" value={row.phone} ltr mono />
+              <DetailField label="واتساب (أرقام فقط)" value={row.phoneWhatsApp} ltr mono />
+              <DetailField label="البريد الإلكتروني" value={row.contactEmail} ltr />
+              <DetailField label="رقم الهوية / الإقامة" value={row.nationalId} ltr mono />
+              <DetailField label="معرّف المستخدم Firebase (UID)" value={row.userId} ltr mono />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-black text-accent mb-2 flex items-center gap-1.5">
+              <ClipboardList className="w-3.5 h-3.5" />
+              تفاصيل الطلب والحالة
+            </h3>
+            <div className="grid grid-cols-1 gap-3 bg-bg-primary/50 rounded-xl p-3 border border-border/30">
+              <DetailField label="رقم الطلب (ORD)" value={row.bookingId} ltr mono />
+              <DetailField label="معرّف المستند Firestore" value={row.docId} ltr mono />
+              <DetailField label="حالة الحجز" value={STATUS_LABELS[row.status]} />
+              <DetailField label="نوع الخدمة" value={row.serviceType} />
+              <DetailField label="مدة الخدمة" value={`${toEasternArabic(row.serviceHours)} ساعات`} />
+              <DetailField label="تاريخ الخدمة" value={`${row.dateFormatted} (${row.date})`} />
+              <DetailField label="الفترة الزمنية" value={row.timeSlotLabel} />
+              <DetailField label="معرّف الفترة" value={row.timeSlotId} ltr mono />
+              <DetailField label="الحرفي المعيّن" value={row.assignedArtisanId || '—'} ltr mono />
+              <DetailField label="تاريخ إنشاء الحجز" value={row.createdAtFormatted} />
+              <DetailField label="آخر تحديث" value={row.updatedAtFormatted} />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-black text-accent mb-2 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" />
+              العنوان والموقع
+            </h3>
+            <div className="grid grid-cols-1 gap-3 bg-bg-primary/50 rounded-xl p-3 border border-border/30">
+              <DetailField label="العنوان" value={row.addressLine} />
+              <DetailField label="تفاصيل (شقة / دور / مبنى)" value={row.addressUnit} />
+              <DetailField label="العنوان الكامل" value={row.addressFull} />
+              <DetailField label="خط العرض (Latitude)" value={String(row.latitude)} ltr mono />
+              <DetailField label="خط الطول (Longitude)" value={String(row.longitude)} ltr mono />
+              {row.mapsUrl ? (
+                <a
+                  href={row.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  فتح على Google Maps
+                </a>
+              ) : (
+                <DetailField label="رابط الخريطة" value="—" />
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-black text-accent mb-2 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5" />
+              التسعير والفاتورة
+            </h3>
+            <div className="grid grid-cols-1 gap-3 bg-bg-primary/50 rounded-xl p-3 border border-border/30">
+              <DetailField label="قيمة الخدمة (قبل الضريبة)" value={`${row.subtotalFormatted} ${row.currency}`} />
+              <DetailField label="ضريبة القيمة المضافة ١٥٪" value={`${row.vatFormatted} ${row.currency}`} />
+              <DetailField label="الإجمالي شامل الضريبة" value={`${row.totalFormatted} ${row.currency}`} />
+              <DetailField label="العملة" value={row.currency} ltr />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-black text-accent mb-2 flex items-center gap-1.5">
+              <FileJson className="w-3.5 h-3.5" />
+              البيانات الخام (Firestore)
+            </h3>
+            <pre
+              dir="ltr"
+              className="text-[10px] font-mono bg-bg-primary border border-border/40 rounded-xl p-3 overflow-x-auto max-h-48 text-text-primary whitespace-pre-wrap break-all"
+            >
+              {JSON.stringify(row.raw, null, 2)}
+            </pre>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard?.writeText(JSON.stringify(row.raw, null, 2))}
+              className="mt-2 text-[10px] font-bold text-accent flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" />
+              نسخ JSON
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {row.phoneWhatsApp && row.phoneWhatsApp !== '—' && (
+              <a
+                href={`https://wa.me/${row.phoneWhatsApp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-[120px] py-2.5 rounded-xl border border-success/30 bg-success/8 text-success text-xs font-bold flex items-center justify-center gap-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                واتساب العميل
+              </a>
+            )}
+            {row.contactEmail && row.contactEmail !== '—' && (
+              <a
+                href={`mailto:${row.contactEmail}`}
+                className="flex-1 min-w-[120px] py-2.5 rounded-xl border border-accent/30 bg-accent/8 text-accent text-xs font-bold flex items-center justify-center gap-1.5"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                بريد العميل
+              </a>
+            )}
+          </div>
+
+          {(row.status === 'confirmed' || row.status === 'assigned' || row.status === 'completed') && (
+            <button
+              onClick={onToggle}
+              disabled={toggling}
+              className="w-full py-2.5 rounded-xl border border-border/60 text-xs font-bold text-text-primary flex items-center justify-center gap-2 hover:bg-accent hover:text-white hover:border-transparent transition-all duration-300 active:scale-95 disabled:opacity-60"
+            >
+              {toggling ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              )}
+              {row.status === 'completed' ? 'إعادة إلى مؤكد' : 'تحديد كمكتمل'}
+            </button>
+          )}
+        </div>
+    </div>
+  );
+}
+
 export default function AdminConsole() {
   const { i18n } = useTranslation();
   const { bookings, loading, error, lastUpdated, refresh, toggleStatus } = useAdminBookings();
@@ -81,7 +310,15 @@ export default function AdminConsole() {
       return (
         b.bookingId.toLowerCase().includes(q) ||
         b.serviceType.includes(q) ||
-        b.dateFormatted.includes(q)
+        b.dateFormatted.includes(q) ||
+        b.customerName.includes(q) ||
+        b.phone.includes(q) ||
+        b.contactEmail.toLowerCase().includes(q) ||
+        b.nationalId.includes(q) ||
+        b.addressFull.includes(q) ||
+        b.userId.toLowerCase().includes(q) ||
+        b.docId.toLowerCase().includes(q) ||
+        b.timeSlotId.includes(q)
       );
     });
   }, [bookings, statusFilter, dateFilter, search]);
@@ -136,8 +373,6 @@ export default function AdminConsole() {
       />
 
       <div className="flex-1 p-4 pb-10 space-y-4">
-
-        {/* Search & Filter */}
         <section className="glass-card rounded-[24px] p-4 shadow-card">
           <SectionHeading
             title="بحث وتصفية"
@@ -150,7 +385,7 @@ export default function AdminConsole() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="ابحث برقم الطلب أو الخدمة…"
+              placeholder="ابحث برقم الطلب، الاسم، الجوال، البريد…"
               className="w-full bg-bg-card/80 border border-border/60 rounded-xl py-3 ps-10 pe-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300"
             />
           </div>
@@ -191,7 +426,6 @@ export default function AdminConsole() {
           )}
         </section>
 
-        {/* Bookings table */}
         <section className="glass-card rounded-[24px] p-4 shadow-card">
           <SectionHeading
             title="سجل الحجوزات"
@@ -211,57 +445,12 @@ export default function AdminConsole() {
           ) : (
             <div className="space-y-3">
               {filtered.map(row => (
-                <div
+                <AdminBookingCard
                   key={row.docId}
-                  className="bg-bg-card/80 border border-border/50 rounded-2xl p-4 shadow-sm hover:shadow-[var(--shadow-card-hover)] transition-all duration-300"
-                >
-                  {/* Row header */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <span dir="ltr" className="text-xs font-black text-accent tracking-wider">
-                        #{row.bookingIdDisplay}
-                      </span>
-                      <p className="text-sm font-bold text-text-primary mt-0.5">{row.serviceType}</p>
-                    </div>
-                    <StatusBadge status={row.status} />
-                  </div>
-
-                  {/* Details grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div>
-                      <span className="text-text-secondary font-medium block">التاريخ</span>
-                      <span className="font-bold text-text-primary">{row.dateFormatted}</span>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary font-medium block">الوقت</span>
-                      <span className="font-bold text-text-primary">{row.timeSlotLabel}</span>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary font-medium block">الإجمالي</span>
-                      <span className="font-black text-accent">{row.totalFormatted} ر.س</span>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary font-medium block">الحالة</span>
-                      <span className="font-bold text-text-primary">{STATUS_LABELS[row.status]}</span>
-                    </div>
-                  </div>
-
-                  {/* Toggle action */}
-                  {(row.status === 'confirmed' || row.status === 'assigned' || row.status === 'completed') && (
-                    <button
-                      onClick={() => handleToggle(row.docId)}
-                      disabled={togglingId === row.docId}
-                      className="w-full py-2.5 rounded-xl border border-border/60 text-xs font-bold text-text-primary flex items-center justify-center gap-2 hover:bg-accent hover:text-white hover:border-transparent transition-all duration-300 active:scale-95 disabled:opacity-60"
-                    >
-                      {togglingId === row.docId ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <ArrowLeftRight className="w-3.5 h-3.5" />
-                      )}
-                      {row.status === 'completed' ? 'إعادة إلى مؤكد' : 'تحديد كمكتمل'}
-                    </button>
-                  )}
-                </div>
+                  row={row}
+                  toggling={togglingId === row.docId}
+                  onToggle={() => handleToggle(row.docId)}
+                />
               ))}
             </div>
           )}

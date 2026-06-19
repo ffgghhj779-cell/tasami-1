@@ -22,6 +22,10 @@ export interface UserBookingRow {
   dateFormatted: string;
   timeSlotLabel: string;
   address: string;
+  customerName: string;
+  contactEmail: string;
+  nationalId: string;
+  phone: string;
   total: number;
   totalFormatted: string;
   status: BookingStatus;
@@ -64,6 +68,10 @@ function mapDoc(id: string, data: Record<string, unknown>): UserBookingRow {
     dateFormatted: date ? formatArabicDate(date) : '—',
     timeSlotLabel: schedule?.timeSlotLabel ?? '—',
     address: addressParts.join('، ') || '—',
+    customerName: (data.customerName as string) || '—',
+    contactEmail: (data.contactEmail as string) || '—',
+    nationalId: (data.nationalId as string) || '—',
+    phone: (data.phone as string) || '—',
     total,
     totalFormatted: formatPrice(total),
     status: parseStatus(data.status),

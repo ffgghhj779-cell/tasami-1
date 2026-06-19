@@ -6,6 +6,7 @@ import { isVerifiedUser } from '../core/auth';
 import { getAuthUserSnapshot } from '../core/authSession';
 import { speak } from '../core/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { isGoogleRedirectPending } from '../core/authBootstrap';
 import { PageSkeleton } from './ui';
 
 interface AuthGuardProps {
@@ -28,6 +29,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (!ready || settling) return;
+    if (isGoogleRedirectPending() && !verified && !getAuthUserSnapshot()) return;
 
     const effectiveUser = user ?? getAuthUserSnapshot();
     const ok = isVerifiedUser(effectiveUser) || verified;
@@ -48,13 +50,15 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [ready, settling, user, verified, navigate, location.pathname, location.search]);
 
+  const awaitingGoogle = isGoogleRedirectPending() && !verified && !user;
+
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
     e.stopPropagation();
     speak(text, i18n.language);
   };
 
-  if (!ready || settling || state === 'loading') {
+  if (!ready || settling || state === 'loading' || awaitingGoogle) {
     return <PageSkeleton />;
   }
 

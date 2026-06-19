@@ -1,5 +1,6 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { isBootstrapAdmin } from './adminAccess';
 
 export type BookingStatus =
   | 'pending'
@@ -16,9 +17,13 @@ export const STATUS_LABELS: Record<BookingStatus, string> = {
   cancelled: 'ملغي',
 };
 
-/** Client-side admin gate — mirrors Firestore `admins/{uid}` with role === 'admin'. */
-export async function checkIsAdmin(uid: string | null | undefined): Promise<boolean> {
+/** Client-side admin gate — Firestore `admins/{uid}` or bootstrap allowlist. */
+export async function checkIsAdmin(
+  uid: string | null | undefined,
+  email?: string | null,
+): Promise<boolean> {
   if (!uid) return false;
+  if (isBootstrapAdmin(uid, email)) return true;
 
   try {
     const snap = await getDoc(doc(db, 'admins', uid));

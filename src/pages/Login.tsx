@@ -5,7 +5,7 @@ import {
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from 'firebase/auth';
-import { LogIn, Volume2, AlertCircle, Lock, Mail } from 'lucide-react';
+import { LogIn, LogOut, Volume2, AlertCircle, Lock, Mail, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
 import { isVerifiedUser } from '../core/auth';
@@ -17,11 +17,14 @@ import {
   registerWithEmail,
   signInWithEmail,
   signInWithGoogle,
+  signOutUser,
+  isInAppBrowser,
 } from '../core/auth';
 import { formatPhoneForFirebaseAuth, validatePhone } from '../core/phone';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
 import { useAuth } from '../contexts/AuthContext';
+import { GOOGLE_REDIRECT_PENDING_KEY, isGoogleRedirectPending, LAST_AUTH_ERROR_KEY } from '../core/authBootstrap';
 import { ButtonShimmer } from '../components/ui';
 import { PageSkeleton } from '../components/ui';
 
@@ -35,7 +38,7 @@ export default function Login() {
   const location = useLocation();
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/home';
   const { i18n } = useTranslation();
-  const { ready, settling, verified } = useAuth();
+  const { ready, settling, verified, user } = useAuth();
 
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -52,11 +55,20 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (ready && !settling && verified) {
-      navigate(returnTo, { replace: true });
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setError('');
+    try {
+      await signOutUser();
+    } catch {
+      setError('تعذّر تسجيل الخروج. حاول مجدداً.');
+    } finally {
+      setLoggingOut(false);
     }
-  }, [ready, settling, verified, navigate, returnTo]);
+  };
 
   useEffect(() => {
     recaptchaVerifierRef.current?.clear();
@@ -69,6 +81,38 @@ export default function Login() {
       recaptchaVerifierRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem(LAST_AUTH_ERROR_KEY);
+    if (stored) {
+      sessionStorage.removeItem(LAST_AUTH_ERROR_KEY);
+      setError(`فشل العودة من Google:\n${stored}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready || settling || !verified) return;
+    if (sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY) !== '1') return;
+    sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+    navigate(returnTo, { replace: true });
+  }, [ready, settling, verified, navigate, returnTo]);
+
+  useEffect(() => {
+    if (!ready || settling || verified) return;
+    if (!isGoogleRedirectPending()) return;
+    const timeout = window.setTimeout(() => {
+      if (!isVerifiedUser(auth.currentUser)) {
+        sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+        setError('تعذّر إكمال تسجيل Google بعد العودة من الحساب. اضغط «نسخ الخطأ» بالأسفل وأرسله للدعم، أو جرّب البريد/الجوال.');
+      }
+    }, 14000);
+    return () => clearTimeout(timeout);
+  }, [ready, settling, verified]);
+
+  const signedInLabel = user?.displayName
+    || user?.email
+    || user?.phoneNumber
+    || 'مستخدم';
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -96,22 +140,35 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (isInAppBrowser()) {
+      setError('لتسجيل Google: افتح الرابط في Chrome أو Safari — المتصفح الداخلي للتطبيقات لا يدعم تسجيل الدخول.');
+      haptic('error');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       const mode = await signInWithGoogle();
-      if (mode === 'popup' && isVerifiedUser(auth.currentUser)) {
+      if (mode === 'redirect') return;
+      if (isVerifiedUser(auth.currentUser)) {
         haptic('success');
         navigate(returnTo, { replace: true });
       }
     } catch (err) {
-      const message = mapGoogleAuthError((err as { code?: string }).code);
+      const code = (err as { code?: string }).code;
+      const msg = (err as { message?: string }).message;
+      const message = mapGoogleAuthError(code);
       if (message) {
-        setError(message);
+        const full = code ? `${message} [${code}]` : message;
+        setError(msg && code ? `${full}\n${msg}` : full);
+        sessionStorage.setItem(LAST_AUTH_ERROR_KEY, code ? `${code}: ${msg ?? message}` : message);
         haptic('error');
       }
     } finally {
-      setLoading(false);
+      if (!isGoogleRedirectPending()) {
+        setLoading(false);
+      }
     }
   };
 
@@ -209,6 +266,19 @@ export default function Login() {
     return <PageSkeleton />;
   }
 
+  const awaitingGoogle = isGoogleRedirectPending() && !verified;
+
+  if (awaitingGoogle) {
+    return (
+      <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary">
+        <PageSkeleton />
+        <p className="text-sm font-bold text-text-secondary mt-6 text-center">
+          جاري إكمال تسجيل الدخول عبر Google…
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary relative">
       <div className="absolute top-0 start-0 w-full h-1/3 bg-text-primary/[0.06] pointer-events-none" />
@@ -227,6 +297,35 @@ export default function Login() {
         </h2>
         <p className="text-sm text-text-secondary mb-4">خطوة واحدة للوصول لخدماتنا</p>
 
+        {verified && (
+          <div className="mb-5 p-4 rounded-2xl bg-success/10 border border-success/25 text-start">
+            <p className="text-sm font-bold text-text-primary mb-1">أنت مسجّل دخول بالفعل</p>
+            <p className="text-xs text-text-secondary font-medium mb-4 truncate" dir="ltr">
+              {signedInLabel}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(returnTo, { replace: true })}
+                className="btn-accent w-full py-3 text-sm font-bold"
+              >
+                متابعة إلى التطبيق
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full py-3 flex items-center justify-center gap-2 rounded-xl border border-danger/30 text-danger text-sm font-bold hover:bg-danger/8 disabled:opacity-50"
+              >
+                <LogOut className="w-4 h-4" />
+                {loggingOut ? 'جاري تسجيل الخروج…' : 'تسجيل الخروج (لتجربة حساب آخر)'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!verified && (
+          <>
         {/* Mode toggle */}
         <div className="flex gap-2 mb-5 p-1 bg-bg-primary rounded-xl border border-border/50">
           <button
@@ -246,9 +345,19 @@ export default function Login() {
         </div>
 
         {error && (
-          <div role="alert" className="flex items-center gap-2 text-danger text-xs font-bold mb-4 text-start bg-danger/8 border border-danger/20 rounded-xl p-3">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            {error}
+          <div role="alert" className="text-danger text-xs font-bold mb-4 text-start bg-danger/8 border border-danger/20 rounded-xl p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="whitespace-pre-wrap leading-relaxed flex-1">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard?.writeText(error)}
+              className="w-full py-2 rounded-lg border border-danger/30 bg-white/60 text-danger flex items-center justify-center gap-1.5 text-[11px] font-black"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              نسخ نص الخطأ
+            </button>
           </div>
         )}
 
@@ -446,6 +555,8 @@ export default function Login() {
             </>
           </ButtonShimmer>
         </button>
+          </>
+        )}
       </div>
     </div>
   );

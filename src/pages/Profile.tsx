@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   UserCircle,
   LogIn,
+  LogOut,
   Calendar,
   Clock,
   Sparkles,
@@ -23,6 +24,8 @@ import { ReviewModal } from '../components/ReviewModal';
 import { DownloadInvoiceButton } from '../components/DownloadInvoiceButton';
 import { invoiceFromBookingRow } from '../core/invoice';
 import { submitReview, fetchReviewedBookingIds } from '../core/reviews';
+import { signOutUser } from '../core/auth';
+import { useAuth } from '../contexts/AuthContext';
 import type { BookingStatus } from '../core/admin';
 
 function StatusPill({ status, label }: { status: BookingStatus; label: string }) {
@@ -114,10 +117,12 @@ function EmptyState({ message }: { message: string }) {
 export default function Profile() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
+  const { verified, user: authUser } = useAuth();
   const { user, upcoming, past, loading, error, statusLabels } = useUserBookings();
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [reviewTarget, setReviewTarget] = useState<UserBookingRow | null>(null);
   const [reviewToast, setReviewToast] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -155,6 +160,17 @@ export default function Profile() {
 
   const handleCloseReview = useCallback(() => setReviewTarget(null), []);
   const handleCloseToast = useCallback(() => setReviewToast(false), []);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await signOutUser();
+      navigate('/login', { replace: true });
+    } catch {
+      setLoggingOut(false);
+    }
+  };
 
   const completed = past.filter(b => b.status === 'completed');
 
@@ -194,6 +210,17 @@ export default function Profile() {
             >
               <LogIn className="w-4 h-4" />
               تسجيل الدخول
+            </button>
+          )}
+          {(verified || authUser) && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="w-full mt-4 py-3 flex items-center justify-center gap-2 rounded-xl border border-danger/30 text-danger text-sm font-bold hover:bg-danger/8 tap-scale disabled:opacity-50"
+            >
+              <LogOut className="w-4 h-4" />
+              {loggingOut ? 'جاري تسجيل الخروج…' : 'تسجيل الخروج'}
             </button>
           )}
         </section>

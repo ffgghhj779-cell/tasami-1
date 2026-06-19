@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Star, ChevronLeft, Volume2, UserCircle, Shield, Menu,
+  Search, Star, ChevronLeft, Volume2, UserCircle, Shield, Menu, LogOut,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { speak } from '../core/utils';
+import { signOutUser } from '../core/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useServices } from '../hooks/useServices';
 import { useFilteredServices } from '../hooks/useFilteredServices';
 import { ServiceIcon, ServiceGridSkeleton } from '../components/ui';
@@ -13,7 +15,20 @@ import type { ServiceItem } from '../hooks/useServices';
 export default function Home() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { verified } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await signOutUser();
+      navigate('/login', { replace: true });
+    } catch {
+      setLoggingOut(false);
+    }
+  };
 
   const { services, loading } = useServices();
   const filteredServices = useFilteredServices(services, searchQuery);
@@ -67,13 +82,27 @@ export default function Home() {
             </h1>
             <p className="text-white/70 text-sm mt-1.5 font-medium tracking-wide">{t('app.tagline')}</p>
           </div>
-          <button
-            onClick={() => navigate('/profile')}
-            className="w-11 h-11 bg-white/[0.08] backdrop-blur-sm rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 hover:bg-white/[0.16] hover:scale-105 active:scale-95 shadow-sm"
-            aria-label={t('nav.profile')}
-          >
-            <UserCircle className="w-6 h-6 text-accent" />
-          </button>
+          <div className="flex items-center gap-2">
+            {verified && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="px-3 py-2 bg-white/[0.08] backdrop-blur-sm rounded-full border border-white/10 text-[11px] font-bold text-white/90 hover:bg-danger/20 hover:border-danger/30 transition-all disabled:opacity-50 flex items-center gap-1"
+                aria-label="تسجيل الخروج"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                خروج
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/profile')}
+              className="w-11 h-11 bg-white/[0.08] backdrop-blur-sm rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 hover:bg-white/[0.16] hover:scale-105 active:scale-95 shadow-sm"
+              aria-label={t('nav.profile')}
+            >
+              <UserCircle className="w-6 h-6 text-accent" />
+            </button>
+          </div>
         </div>
 
         {/* Global Search Bar */}

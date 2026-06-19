@@ -14,7 +14,16 @@
     ],
     "headers": [
       {
-        "source": "**/*.@(js|css|woff2)",
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css|woff2|ttf)",
         "headers": [
           {
             "key": "Cache-Control",

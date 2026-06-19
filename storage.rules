@@ -12,10 +12,17 @@ service firebase.storage {
       return isAuthenticated() && request.auth.uid == uid;
     }
 
+    function isBootstrapAdminUid() {
+      return isAuthenticated() && request.auth.uid == 'mLHa4QjZOyWEvt1qflTw5fP4Cbw1';
+    }
+
     function isAdmin() {
-      return isAuthenticated()
-        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+      return isBootstrapAdminUid()
+        || (
+          isAuthenticated()
+          && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+          && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role == 'admin'
+        );
     }
 
     function isArtisan() {

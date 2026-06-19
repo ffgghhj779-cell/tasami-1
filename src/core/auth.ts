@@ -5,8 +5,10 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
+  signOut,
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { GOOGLE_REDIRECT_PENDING_KEY } from './authBootstrap';
 
 /** True when signed in via Google, Phone, or Email — anonymous is never allowed. */
 export function isVerifiedUser(user: User | null | undefined): boolean {
@@ -21,10 +23,34 @@ export function requireVerifiedUser(): User {
   return user!;
 }
 
+export async function signOutUser(): Promise<void> {
+  sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  await signOut(auth);
+}
+
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-/** Mobile browsers block popups — redirect is required for reliable Google sign-in. */
+/** In-app browsers (WhatsApp, Facebook, etc.) break Google popup auth. */
+export function isInAppBrowser(): boolean {
+  const ua = navigator.userAgent;
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|WhatsApp|Snapchat|TikTok|Bytedance|Temu|wv\)|; wv\)|WebView/i.test(ua);
+}
+
+/** True when running as installed PWA — popup OAuth often fails here. */
+export function isStandalonePwa(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches
+    || (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+/** iOS Safari, Android mobile, installed PWA, and in-app browsers need redirect. */
+export function needsGoogleRedirect(): boolean {
+  return isMobileAuthContext() || isStandalonePwa();
+}
+
+/** @deprecated Use needsGoogleRedirect for Google; kept for auth settle timing. */
 export function isMobileAuthContext(): boolean {
   return (
     /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
@@ -34,13 +60,33 @@ export function isMobileAuthContext(): boolean {
   );
 }
 
+async function signInWithGoogleRedirect(): Promise<'redirect'> {
+  sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1');
+  await signInWithRedirect(auth, googleProvider);
+  return 'redirect';
+}
+
 export async function signInWithGoogle(): Promise<'popup' | 'redirect'> {
-  if (isMobileAuthContext()) {
-    await signInWithRedirect(auth, googleProvider);
-    return 'redirect';
+  if (needsGoogleRedirect() || isInAppBrowser()) {
+    return signInWithGoogleRedirect();
   }
-  await signInWithPopup(auth, googleProvider);
-  return 'popup';
+
+  sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  try {
+    await signInWithPopup(auth, googleProvider);
+    return 'popup';
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (
+      code === 'auth/popup-blocked'
+      || code === 'auth/cancelled-popup-request'
+      || code === 'auth/internal-error'
+      || code === 'auth/web-storage-unsupported'
+    ) {
+      return signInWithGoogleRedirect();
+    }
+    throw err;
+  }
 }
 
 /** Completed by AuthProvider via bootstrapAuth — do not call elsewhere. */
@@ -62,16 +108,26 @@ export async function registerWithEmail(email: string, password: string): Promis
 export function mapGoogleAuthError(code?: string): string {
   switch (code) {
     case 'auth/unauthorized-domain':
-      return 'النطاق غير مصرّح به. أضف نطاق الاستضافة في Firebase → Authentication → Authorized domains.';
+      return 'النطاق غير مصرّح به. أضف tasami-14845.web.app في Firebase → Authorized domains.';
     case 'auth/popup-blocked':
+      return 'المتصفح حجب النافذة. جرّب مرة أخرى أو افتح الموقع في Chrome/Safari.';
     case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
       return '';
     case 'auth/operation-not-allowed':
       return 'تسجيل Google غير مفعّل في Firebase Console.';
     case 'auth/network-request-failed':
       return 'تحقق من الاتصال بالإنترنت وحاول مجدداً.';
+    case 'auth/web-storage-unsupported':
+      return 'التخزين محجوب. أغلق التصفّح الخاص أو افتح الموقع في Chrome/Safari.';
+    case 'auth/internal-error':
+      return 'خطأ في المتصفح. افتح tasami-14845.web.app في Chrome أو Safari (ليس من داخل تطبيق).';
+    case 'auth/operation-not-supported-in-this-environment':
+      return 'هذا المتصفح لا يدعم Google. افتح الرابط في Chrome أو Safari مباشرة.';
+    case 'auth/account-exists-with-different-credential':
+      return 'هذا البريد مسجّل بطريقة أخرى. جرّب البريد/الجوال أو حساب Google مختلف.';
     default:
-      return 'تعذّر تسجيل الدخول عبر Google. حاول مجدداً.';
+      return 'تعذّر تسجيل الدخول عبر Google. افتح الموقع في Chrome أو Safari وحاول مجدداً.';
   }
 }
 

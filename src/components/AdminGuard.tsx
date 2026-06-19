@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Home, Copy, Volume2, LogIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { auth } from '../core/firebase';
 import { checkIsAdmin } from '../core/admin';
 import { speak } from '../core/utils';
+import { useAuth } from '../contexts/AuthContext';
 import { PageSkeleton } from '../components/ui';
 
 interface AdminGuardProps {
@@ -17,35 +16,37 @@ type GuardState = 'loading' | 'authorized' | 'denied';
 export default function AdminGuard({ children }: AdminGuardProps) {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
+  const { ready, settling, user, verified } = useAuth();
   const [state, setState] = useState<GuardState>('loading');
   const [uid, setUid] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!ready || settling) return;
+
     let mounted = true;
 
-    const unsubscribe = onAuthStateChanged(auth, async user => {
-      if (!mounted) return;
-
-      if (!user || user.isAnonymous) {
-        setUid(user?.uid ?? null);
-        setState('denied');
+    (async () => {
+      if (!user || !verified) {
+        if (mounted) {
+          setUid(user?.uid ?? null);
+          setState('denied');
+        }
         return;
       }
 
       setUid(user.uid);
       try {
-        const allowed = await checkIsAdmin(user.uid);
+        const allowed = await checkIsAdmin(user.uid, user.email);
         if (mounted) setState(allowed ? 'authorized' : 'denied');
       } catch {
         if (mounted) setState('denied');
       }
-    });
+    })();
 
     return () => {
       mounted = false;
-      unsubscribe();
     };
-  }, []);
+  }, [ready, settling, user, verified]);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -53,7 +54,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     speak(text, i18n.language);
   };
 
-  if (state === 'loading') {
+  if (!ready || settling || state === 'loading') {
     return <PageSkeleton />;
   }
 
@@ -98,7 +99,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login', { state: { from: '/admin' } })}
               className="btn-accent w-full py-3.5 flex items-center justify-center gap-2"
             >
               <LogIn className="w-4 h-4" />
