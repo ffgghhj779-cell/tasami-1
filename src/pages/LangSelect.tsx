@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Volume2 } from 'lucide-react';
 import { speak } from '../core/utils';
+import { haptic } from '../core/haptics';
 
 const LANGUAGES = [
   { code: 'ar', flag: '🇸🇦', label: 'العربية',  dir: 'rtl' },
@@ -16,6 +17,7 @@ export default function LangSelect() {
   const navigate = useNavigate();
 
   const handleSelect = (lang: string) => {
+    haptic('light');
     i18n.changeLanguage(lang);
     navigate('/home');
   };
@@ -50,10 +52,10 @@ export default function LangSelect() {
             key={code}
             onClick={() => handleSelect(code)}
             dir={dir}
-            className="group aspect-square glass-card rounded-3xl flex flex-col items-center justify-center gap-3 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_28px_rgba(62,74,46,0.10)] hover:border-accent/50 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group aspect-square glass-card premium-depth rounded-3xl flex flex-col items-center justify-center gap-3 interactive-card ui-chrome outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <span className="text-5xl transition-transform duration-300 group-hover:scale-110 select-none">{flag}</span>
-            <span className="font-bold text-text-primary text-sm tracking-wide">{label}</span>
+            <span className="text-5xl select-none">{flag}</span>
+            <span className="font-bold text-text-primary text-sm tracking-wide type-body">{label}</span>
           </button>
         ))}
       </div>

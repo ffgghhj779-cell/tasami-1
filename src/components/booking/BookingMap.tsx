@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
+import { Skeleton } from '../ui/Skeleton';
 
 export interface BookingMapHandle {
   flyTo: (longitude: number, latitude: number, zoom?: number) => void;
@@ -57,8 +58,8 @@ const BookingMap = forwardRef<BookingMapHandle, BookingMapProps>(
 
     if (!mounted) {
       return (
-        <div className="w-full h-full bg-bg-primary flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-4 border-border border-t-accent animate-spin" />
+        <div className="w-full h-full bg-bg-primary flex flex-col p-4 gap-3">
+          <Skeleton className="flex-1 rounded-[24px] min-h-[200px]" />
         </div>
       );
     }

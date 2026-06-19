@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { haptic } from '../../core/haptics';
 
 export type ToastVariant = 'success' | 'error';
 
@@ -10,23 +11,24 @@ interface ToastProps {
   durationMs?: number;
 }
 
-export function Toast({
+export const Toast = memo(function Toast({
   message,
   variant = 'success',
   onClose,
   durationMs = 4500,
 }: ToastProps) {
   useEffect(() => {
+    haptic(variant === 'success' ? 'success' : 'error');
     const timer = setTimeout(onClose, durationMs);
     return () => clearTimeout(timer);
-  }, [onClose, durationMs]);
+  }, [onClose, durationMs, variant]);
 
   const isSuccess = variant === 'success';
 
   return (
     <div
       role="alert"
-      className={`fixed bottom-24 inset-x-4 max-w-md mx-auto z-[60] flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-[var(--shadow-header)] border animate-[success-fade-up_0.35s_ease-out_both] ${
+      className={`fixed bottom-24 inset-x-4 max-w-md mx-auto z-[60] flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-[var(--shadow-header)] border gpu-layer success-fade-up ${
         isSuccess
           ? 'bg-success/95 text-white border-success/30'
           : 'bg-danger/95 text-white border-danger/30'
@@ -40,10 +42,10 @@ export function Toast({
         type="button"
         onClick={onClose}
         aria-label="إغلاق"
-        className="p-1 rounded-full hover:bg-white/15 transition-all duration-200 active:scale-95 shrink-0"
+        className="p-1 rounded-full hover:bg-white/15 tap-scale shrink-0"
       >
         <X className="w-4 h-4" />
       </button>
     </div>
   );
-}
+});

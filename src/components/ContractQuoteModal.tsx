@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Volume2, X, Loader2 } from 'lucide-react';
+import React, { memo, useEffect, useState } from 'react';
+import { Volume2, X } from 'lucide-react';
 import { speak } from '../core/utils';
+import { ButtonShimmer } from './ui';
 
 interface ContractQuoteModalProps {
   open: boolean;
@@ -10,7 +11,7 @@ interface ContractQuoteModalProps {
   speakLang?: string;
 }
 
-export function ContractQuoteModal({
+export const ContractQuoteModal = memo(function ContractQuoteModal({
   open,
   packageTitle,
   onClose,
@@ -66,11 +67,11 @@ export function ContractQuoteModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"
+      className="modal-backdrop fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
     >
-      <div className="glass-card w-full max-w-md rounded-[28px] p-5 shadow-[var(--shadow-header)] border border-border/60 animate-[success-fade-up_0.3s_ease-out_both]">
+      <div className="modal-sheet glass-modal w-full max-w-md rounded-[28px] p-5 border border-border/60">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="font-black text-text-primary text-lg flex items-center gap-2">
@@ -86,7 +87,7 @@ export function ContractQuoteModal({
             </h2>
             <p className="text-xs text-accent font-bold mt-1">{packageTitle}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="إغلاق" className="p-2 rounded-full hover:bg-border active:scale-95">
+          <button type="button" onClick={onClose} aria-label="إغلاق" className="p-2 rounded-full hover:bg-border tap-scale">
             <X className="w-5 h-5 text-text-secondary" />
           </button>
         </div>
@@ -123,7 +124,7 @@ export function ContractQuoteModal({
               maxLength={2000}
               disabled={submitting}
               placeholder="صفّ احتياجاتك: عدد المواقع، التكرار، المدة…"
-              className="w-full bg-bg-primary border border-border/60 rounded-xl py-3 px-4 text-text-primary text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-60"
+              className="w-full bg-bg-primary border border-border/60 rounded-xl py-3 px-4 text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-60"
             />
           </div>
         </div>
@@ -134,12 +135,11 @@ export function ContractQuoteModal({
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          className="btn-accent w-full mt-4 py-3.5 flex items-center justify-center gap-2 disabled:opacity-60"
+          className={`btn-accent w-full mt-4 py-3.5 flex items-center justify-center ${submitting ? 'btn-loading' : ''}`}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-          إرسال الطلب
+          <ButtonShimmer loading={submitting}>إرسال الطلب</ButtonShimmer>
         </button>
       </div>
     </div>
   );
-}
+});

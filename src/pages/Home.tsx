@@ -84,7 +84,7 @@ export default function Home() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('home.searchPlaceholder')}
             aria-label={t('home.searchPlaceholder')}
-            className="w-full bg-white/[0.10] border border-white/20 rounded-2xl py-3.5 ps-12 pe-5 text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-accent/70 focus:bg-white/[0.16] backdrop-blur-md shadow-sm transition-all duration-300 ease-out text-sm font-medium"
+            className="w-full bg-white/[0.10] border border-white/20 rounded-2xl py-3.5 ps-12 pe-5 text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-accent/70 focus:bg-white/[0.16] backdrop-blur-md shadow-sm transition-opacity duration-150 ease-out font-medium"
           />
           <Search className="absolute start-4 top-4 w-4.5 h-4.5 text-white/55 group-focus-within:text-accent transition-colors duration-300" />
         </div>
@@ -200,31 +200,31 @@ export default function Home() {
       </div>
 
       {/* ── Bottom Navigation Bar ── */}
-      <div className="fixed bottom-0 max-w-md w-full bg-bg-card/80 backdrop-blur-md border-t border-border/60 flex justify-around py-3 px-2 shadow-[var(--shadow-bottom-bar)] z-50">
+      <div className="fixed bottom-0 max-w-md w-full bg-bg-card/80 backdrop-blur-md border-t border-border/60 flex justify-around py-3 px-2 shadow-[var(--shadow-bottom-bar)] z-50 gpu-layer">
         <button
           onClick={() => navigate('/profile')}
-          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
+          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent tap-opacity transition-opacity duration-150"
         >
           <UserCircle className="w-6 h-6" />
           <span className="text-[10px] font-bold">{t('nav.profile')}</span>
         </button>
         <button
           onClick={() => navigate('/admin')}
-          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
+          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent tap-opacity transition-opacity duration-150"
         >
           <Shield className="w-6 h-6" />
           <span className="text-[10px] font-bold">{t('nav.admin')}</span>
         </button>
         <button
           onClick={() => navigate('/register-artisan')}
-          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
+          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent tap-opacity transition-opacity duration-150"
         >
           <UserCircle className="w-6 h-6" />
           <span className="text-[10px] font-bold">{t('nav.becomeArtisan')}</span>
         </button>
         <button
           onClick={() => navigate('/how')}
-          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
+          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent tap-opacity transition-opacity duration-150"
         >
           <Menu className="w-6 h-6" />
           <span className="text-[10px] font-bold">{t('nav.more')}</span>

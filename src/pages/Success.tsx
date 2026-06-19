@@ -20,6 +20,7 @@ import { DownloadInvoiceButton } from '../components/DownloadInvoiceButton';
 import { Confetti } from '../components/Confetti';
 import { invoiceFromSnapshot } from '../core/invoice';
 import { loadLastBooking } from '../core/booking';
+import { haptic } from '../core/haptics';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -51,6 +52,7 @@ export default function Success() {
       navigate('/home', { replace: true });
       return;
     }
+    haptic('success');
     if (!isStandalone()) setShowPwa(true);
   }, [booking, navigate]);
 
@@ -73,6 +75,7 @@ export default function Success() {
     if (!booking) return;
     navigator.clipboard?.writeText(booking.bookingId).then(() => {
       setCopied(true);
+      haptic('light');
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
   };

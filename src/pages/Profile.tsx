@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   UserCircle,
@@ -41,7 +41,7 @@ function StatusPill({ status, label }: { status: BookingStatus; label: string })
   );
 }
 
-function BookingCard({
+const BookingCard = memo(function BookingCard({
   booking,
   statusLabel,
   showReview,
@@ -55,7 +55,7 @@ function BookingCard({
   onReview: () => void;
 }) {
   return (
-    <div className="glass-card rounded-[24px] p-4 shadow-card border border-border/40 hover:shadow-[var(--shadow-card-hover)] transition-all duration-300">
+    <div className="glass-card rounded-[24px] p-4 shadow-card border border-border/40 gpu-layer">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <span dir="ltr" className="text-xs font-black text-accent tracking-wider">
@@ -88,7 +88,7 @@ function BookingCard({
           <button
             type="button"
             onClick={onReview}
-            className="w-full py-2.5 rounded-xl border border-accent/40 text-accent text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-accent/10 transition-all duration-300 active:scale-95"
+            className="w-full py-2.5 rounded-xl border border-accent/40 text-accent text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-accent/10 tap-scale"
           >
             <Star className="w-3.5 h-3.5" />
             قيّم الخدمة
@@ -100,7 +100,7 @@ function BookingCard({
       </div>
     </div>
   );
-}
+});
 
 function EmptyState({ message }: { message: string }) {
   return (
@@ -139,7 +139,7 @@ export default function Profile() {
     || (user?.phoneNumber ? user.phoneNumber : null)
     || (user?.isAnonymous ? 'ضيف' : 'مستخدم');
 
-  const handleReviewSubmit = async (rating: number, comment: string) => {
+  const handleReviewSubmit = useCallback(async (rating: number, comment: string) => {
     if (!reviewTarget || !user) return;
     await submitReview({
       bookingDocId: reviewTarget.docId,
@@ -151,7 +151,10 @@ export default function Profile() {
     });
     setReviewedIds(prev => new Set(prev).add(reviewTarget.docId));
     setReviewToast(true);
-  };
+  }, [reviewTarget, user, displayName]);
+
+  const handleCloseReview = useCallback(() => setReviewTarget(null), []);
+  const handleCloseToast = useCallback(() => setReviewToast(false), []);
 
   const completed = past.filter(b => b.status === 'completed');
 
@@ -163,7 +166,7 @@ export default function Profile() {
         backTo="/home"
       />
 
-      <div className="flex-1 p-4 space-y-5 overflow-y-auto">
+      <div className="flex-1 p-4 space-y-5 native-scroll overflow-y-auto">
         <section className="glass-card rounded-[28px] p-5 shadow-card relative overflow-hidden">
           <div className="absolute -top-8 -end-8 w-28 h-28 rounded-full bg-accent/10 blur-2xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
@@ -279,7 +282,7 @@ export default function Profile() {
       <ReviewModal
         open={!!reviewTarget}
         bookingLabel={reviewTarget ? `#${reviewTarget.bookingIdDisplay} — ${reviewTarget.serviceType}` : ''}
-        onClose={() => setReviewTarget(null)}
+        onClose={handleCloseReview}
         onSubmit={handleReviewSubmit}
         speakLang={i18n.language}
       />
@@ -288,7 +291,7 @@ export default function Profile() {
         <Toast
           message="شكراً! تم إرسال تقييمك بنجاح."
           variant="success"
-          onClose={() => setReviewToast(false)}
+          onClose={handleCloseToast}
         />
       )}
     </div>

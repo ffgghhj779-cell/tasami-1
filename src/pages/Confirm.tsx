@@ -9,7 +9,6 @@ import {
   Calendar,
   Clock,
   Sparkles,
-  Loader2,
   AlertCircle,
   Phone,
 } from 'lucide-react';
@@ -28,6 +27,8 @@ import {
 import { submitBooking } from '../core/bookings';
 import { validatePhone } from '../core/phone';
 import { auth } from '../core/firebase';
+import { haptic } from '../core/haptics';
+import { ButtonShimmer } from '../components/ui';
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
@@ -100,6 +101,7 @@ export default function Confirm() {
     const phoneCheck = validatePhone(phone);
     if (!phoneCheck.valid) {
       setPhoneError(phoneCheck.error ?? 'رقم الجوال غير صالح');
+      haptic('error');
       return;
     }
     setPhoneError('');
@@ -117,8 +119,10 @@ export default function Confirm() {
 
     setSubmitting(true);
     setSubmitError('');
+    haptic('confirm');
     try {
       await submitBooking();
+      haptic('success');
       navigate('/success', { replace: true });
     } catch (err) {
       const message =
@@ -126,6 +130,7 @@ export default function Confirm() {
           ? err.message
           : 'تعذّر إتمام الحجز. تحقق من الاتصال وحاول مجدداً.';
       setSubmitError(message);
+      haptic('error');
       setSubmitting(false);
     }
   };
@@ -327,7 +332,7 @@ export default function Confirm() {
       </div>
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-0 max-w-md w-full p-4 bg-bg-card/85 backdrop-blur-md border-t border-border/60 shadow-[var(--shadow-bottom-bar)] z-20">
+      <div className="fixed bottom-0 max-w-md w-full p-4 bg-bg-card/85 backdrop-blur-md border-t border-border/60 shadow-[var(--shadow-bottom-bar)] z-20 gpu-layer">
         {submitError && (
           <div role="alert" className="flex items-center gap-2 text-danger text-xs font-bold mb-2.5 justify-center">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -341,16 +346,11 @@ export default function Confirm() {
           type="button"
           onClick={handleConfirm}
           disabled={submitting}
-          className="btn-accent w-full text-lg py-4 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+          className={`btn-accent w-full text-lg py-4 disabled:opacity-70 flex items-center justify-center ${submitting ? 'btn-loading' : ''}`}
         >
-          {submitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              جاري تأكيد الحجز…
-            </>
-          ) : (
-            'تأكيد الدفع والحجز'
-          )}
+          <ButtonShimmer loading={submitting}>
+            {submitting ? 'جاري تأكيد الحجز…' : 'تأكيد الدفع والحجز'}
+          </ButtonShimmer>
         </button>
       </div>
     </div>

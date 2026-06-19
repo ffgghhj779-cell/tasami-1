@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Volume2 } from 'lucide-react';
 import { BackButton } from './BackButton';
 
@@ -14,7 +14,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-export function PageHeader({
+export const PageHeader = memo(function PageHeader({
   title,
   subtitle,
   onSpeak,
@@ -27,7 +27,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={`bg-text-primary px-4 pt-12 pb-5 rounded-b-[32px] shadow-[var(--shadow-header)] ${
+      className={`bg-text-primary px-4 pt-12 pb-5 rounded-b-[32px] shadow-[var(--shadow-header)] gpu-layer ${
         sticky ? 'sticky top-0 z-20' : ''
       } ${className}`}
     >
@@ -46,7 +46,7 @@ export function PageHeader({
                 type="button"
                 onClick={onSpeak}
                 aria-label="استمع"
-                className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95 shrink-0"
+                className="btn-speak shrink-0"
               >
                 <Volume2 className="w-4 h-4 text-accent" />
               </button>
@@ -58,4 +58,4 @@ export function PageHeader({
       {footer && <div className="mt-4">{footer}</div>}
     </div>
   );
-}
+});

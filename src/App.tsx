@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import React, { lazy, Suspense, useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { WifiOff } from 'lucide-react';
+import React, { lazy, Suspense, useState, useEffect, memo } from 'react';
 import { PageSkeleton } from './components/ui';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { OfflineBanner } from './components/OfflineBanner';
 
 // Critical-path pages — loaded eagerly
 import LangSelect      from './pages/LangSelect';
@@ -23,12 +22,12 @@ const ArtisanPortfolio  = lazy(() => import('./pages/ArtisanPortfolio'));
 const StaticContent     = lazy(() => import('./pages/StaticContent'));
 const AdminConsole      = lazy(() => import('./pages/AdminConsole'));
 
-function AnimatedRoutes() {
+const AnimatedRoutes = memo(function AnimatedRoutes() {
   const location = useLocation();
   useDocumentTitle();
 
   return (
-    <div key={location.pathname} className="page-enter min-h-full">
+    <div key={location.pathname} className="page-enter min-h-full gpu-layer">
       <Suspense fallback={<PageSkeleton />}>
         <Routes location={location}>
           <Route path="/"               element={<LangSelect />}     />
@@ -50,10 +49,9 @@ function AnimatedRoutes() {
       </Suspense>
     </div>
   );
-}
+});
 
 export default function App() {
-  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -69,13 +67,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative">
-        {!isOnline && (
-          <div className="bg-danger text-white text-xs font-bold p-2 text-center flex items-center justify-center gap-2 sticky z-50 top-0">
-            <WifiOff className="w-4 h-4" />
-            {t('common.offlineBanner')}
-          </div>
-        )}
+      <div className="app-shell ui-chrome min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative gpu-layer premium-depth">
+        {!isOnline && <OfflineBanner />}
         <AnimatedRoutes />
       </div>
     </BrowserRouter>

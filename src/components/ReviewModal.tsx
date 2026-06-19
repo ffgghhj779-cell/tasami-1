@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Star, Volume2, X, Loader2 } from 'lucide-react';
+import React, { memo, useEffect, useState } from 'react';
+import { Star, Volume2, X } from 'lucide-react';
 import { speak, toEasternArabic } from '../core/utils';
+import { ButtonShimmer } from './ui';
 
 interface ReviewModalProps {
   open: boolean;
@@ -10,7 +11,7 @@ interface ReviewModalProps {
   speakLang?: string;
 }
 
-export function ReviewModal({
+export const ReviewModal = memo(function ReviewModal({
   open,
   bookingLabel,
   onClose,
@@ -52,12 +53,12 @@ export function ReviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"
+      className="modal-backdrop fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="review-modal-title"
     >
-      <div className="glass-card w-full max-w-md rounded-[28px] p-5 shadow-[var(--shadow-header)] border border-border/60 animate-[success-fade-up_0.3s_ease-out_both]">
+      <div className="modal-sheet glass-modal w-full max-w-md rounded-[28px] p-5 border border-border/60">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h2 id="review-modal-title" className="font-black text-text-primary text-lg flex items-center gap-2">
@@ -77,7 +78,7 @@ export function ReviewModal({
             type="button"
             onClick={onClose}
             aria-label="إغلاق"
-            className="p-2 rounded-full hover:bg-border transition-all duration-200 active:scale-95"
+            className="p-2 rounded-full hover:bg-border tap-scale"
           >
             <X className="w-5 h-5 text-text-secondary" />
           </button>
@@ -90,7 +91,7 @@ export function ReviewModal({
               type="button"
               onClick={() => setRating(n)}
               aria-label={`${toEasternArabic(n)} نجوم`}
-              className="p-1 transition-transform duration-200 active:scale-90 hover:scale-110"
+              className="p-1 tap-scale transition-transform duration-150"
             >
               <Star
                 className={`w-8 h-8 ${
@@ -109,7 +110,7 @@ export function ReviewModal({
           maxLength={500}
           placeholder="شاركنا تجربتك مع الخدمة…"
           disabled={submitting}
-          className="w-full bg-bg-primary border border-border/60 rounded-xl py-3 px-4 text-text-primary text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-60"
+          className="w-full bg-bg-primary border border-border/60 rounded-xl py-3 px-4 text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-60"
         />
 
         {error && (
@@ -120,12 +121,11 @@ export function ReviewModal({
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          className="btn-accent w-full mt-4 py-3.5 flex items-center justify-center gap-2 disabled:opacity-60"
+          className={`btn-accent w-full mt-4 py-3.5 flex items-center justify-center ${submitting ? 'btn-loading' : ''}`}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-          إرسال التقييم
+          <ButtonShimmer loading={submitting}>إرسال التقييم</ButtonShimmer>
         </button>
       </div>
     </div>
   );
-}
+});
