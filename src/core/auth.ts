@@ -2,7 +2,6 @@ import type { User } from 'firebase/auth';
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
-  getRedirectResult,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -44,10 +43,10 @@ export async function signInWithGoogle(): Promise<'popup' | 'redirect'> {
   return 'popup';
 }
 
-/** Call before auth guards evaluate — completes pending Google redirect. */
+/** Completed by AuthProvider via bootstrapAuth — do not call elsewhere. */
 export async function resolveGoogleRedirectResult(): Promise<User | null> {
-  const result = await getRedirectResult(auth);
-  return result?.user ?? null;
+  const { waitForAuthUser } = await import('./authSession');
+  return waitForAuthUser();
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<User> {

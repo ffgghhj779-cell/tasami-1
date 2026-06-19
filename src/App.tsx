@@ -15,6 +15,7 @@ import Contracts       from './pages/Contracts';
 import Profile         from './pages/Profile';
 import AdminGuard      from './components/AdminGuard';
 import AuthGuard       from './components/AuthGuard';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Lazy-loaded pages (BookingMap uses Leaflet — code-split on /booking)
 const Booking           = lazy(() => import('./pages/Booking'));
@@ -68,10 +69,12 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative premium-depth">
-        {!isOnline && <OfflineBanner />}
-        <AnimatedRoutes />
-      </div>
+      <AuthProvider>
+        <div className="app-shell min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative premium-depth">
+          {!isOnline && <OfflineBanner />}
+          <AnimatedRoutes />
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -8,8 +8,8 @@ import {
 import { LogIn, Volume2, AlertCircle, Lock, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
+import { isVerifiedUser } from '../core/auth';
 import {
-  isVerifiedUser,
   isMobileAuthContext,
   mapEmailAuthError,
   mapGoogleAuthError,
@@ -21,7 +21,7 @@ import {
 import { formatPhoneForFirebaseAuth, validatePhone } from '../core/phone';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
-import { useAuthReady } from '../hooks/useAuthReady';
+import { useAuth } from '../contexts/AuthContext';
 import { ButtonShimmer } from '../components/ui';
 
 type AuthMode = 'phone' | 'email';
@@ -34,7 +34,7 @@ export default function Login() {
   const location = useLocation();
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/home';
   const { i18n } = useTranslation();
-  const { ready, user } = useAuthReady();
+  const { ready, verified } = useAuth();
 
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -52,10 +52,10 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (ready && isVerifiedUser(user)) {
+    if (ready && verified) {
       navigate(returnTo, { replace: true });
     }
-  }, [ready, user, navigate, returnTo]);
+  }, [ready, verified, navigate, returnTo]);
 
   useEffect(() => {
     recaptchaVerifierRef.current?.clear();

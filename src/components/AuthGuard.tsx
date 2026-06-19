@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LogIn, Shield, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isVerifiedUser } from '../core/auth';
+import { getAuthUserSnapshot } from '../core/authSession';
 import { speak } from '../core/utils';
-import { useAuthReady } from '../hooks/useAuthReady';
+import { useAuth } from '../contexts/AuthContext';
 import { PageSkeleton } from './ui';
 
 interface AuthGuardProps {
@@ -15,29 +16,37 @@ type GuardState = 'loading' | 'authorized' | 'denied';
 
 /**
  * Blocks anonymous and unauthenticated users.
- * Waits for auth persistence + redirect result before any redirect to /login.
+ * Waits for global AuthProvider bootstrap before any redirect to /login.
  */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { ready, user } = useAuthReady();
+  const { ready, user, verified } = useAuth();
   const [state, setState] = useState<GuardState>('loading');
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     if (!ready) return;
 
-    if (isVerifiedUser(user)) {
+    const effectiveUser = user ?? getAuthUserSnapshot();
+    const ok = isVerifiedUser(effectiveUser) || verified;
+
+    if (ok) {
       setState('authorized');
+      redirectedRef.current = false;
       return;
     }
 
     setState('denied');
-    navigate('/login', {
-      replace: true,
-      state: { from: location.pathname + location.search },
-    });
-  }, [ready, user, navigate, location.pathname, location.search]);
+    if (!redirectedRef.current) {
+      redirectedRef.current = true;
+      navigate('/login', {
+        replace: true,
+        state: { from: location.pathname + location.search },
+      });
+    }
+  }, [ready, user, verified, navigate, location.pathname, location.search]);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();

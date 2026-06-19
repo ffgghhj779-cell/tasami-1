@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -15,17 +15,11 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-
-// Persist sessions across reloads — prevents auth loop after Google redirect.
-void setPersistence(auth, browserLocalPersistence);
-
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 /**
+ * Auth persistence + Google redirect handled once in authBootstrap.ts (app mount).
  * Enable in Firebase Console → Authentication → Sign-in method:
- * - Google
- * - Phone
- * - Email/Password
- * Disable Anonymous.
+ * - Google, Phone, Email/Password — disable Anonymous.
  */
