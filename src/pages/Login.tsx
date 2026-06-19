@@ -23,6 +23,7 @@ import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { ButtonShimmer } from '../components/ui';
+import { PageSkeleton } from '../components/ui';
 
 type AuthMode = 'phone' | 'email';
 type PhoneStep = 'input' | 'otp';
@@ -34,7 +35,7 @@ export default function Login() {
   const location = useLocation();
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/home';
   const { i18n } = useTranslation();
-  const { ready, verified } = useAuth();
+  const { ready, settling, verified } = useAuth();
 
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -52,10 +53,10 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (ready && verified) {
+    if (ready && !settling && verified) {
       navigate(returnTo, { replace: true });
     }
-  }, [ready, verified, navigate, returnTo]);
+  }, [ready, settling, verified, navigate, returnTo]);
 
   useEffect(() => {
     recaptchaVerifierRef.current?.clear();
@@ -203,6 +204,10 @@ export default function Login() {
     setPhoneStep('input');
     setOtp('');
   };
+
+  if (!ready || settling) {
+    return <PageSkeleton />;
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary relative">

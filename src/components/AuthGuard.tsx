@@ -16,18 +16,18 @@ type GuardState = 'loading' | 'authorized' | 'denied';
 
 /**
  * Blocks anonymous and unauthenticated users.
- * Waits for global AuthProvider bootstrap before any redirect to /login.
+ * Waits for global AuthProvider bootstrap + mobile OAuth settle before /login redirect.
  */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { ready, user, verified } = useAuth();
+  const { ready, settling, user, verified } = useAuth();
   const [state, setState] = useState<GuardState>('loading');
   const redirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || settling) return;
 
     const effectiveUser = user ?? getAuthUserSnapshot();
     const ok = isVerifiedUser(effectiveUser) || verified;
@@ -46,7 +46,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         state: { from: location.pathname + location.search },
       });
     }
-  }, [ready, user, verified, navigate, location.pathname, location.search]);
+  }, [ready, settling, user, verified, navigate, location.pathname, location.search]);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -54,7 +54,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     speak(text, i18n.language);
   };
 
-  if (!ready || state === 'loading') {
+  if (!ready || settling || state === 'loading') {
     return <PageSkeleton />;
   }
 

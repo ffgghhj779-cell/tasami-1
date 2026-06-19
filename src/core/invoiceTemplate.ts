@@ -64,7 +64,7 @@ function rowLine(label: string, value: string, valueLtr = false): HTMLDivElement
 
 /**
  * Canvas-first invoice DOM — built with text nodes (not innerHTML) for correct Arabic shaping.
- * Positioned in-viewport but invisible so html2canvas renders RTL faithfully.
+ * Positioned off-screen at full opacity so html2canvas captures content faithfully.
  */
 export async function buildInvoiceElement(data: InvoiceData): Promise<HTMLDivElement> {
   await ensureTajawalLoaded();
@@ -76,9 +76,9 @@ export async function buildInvoiceElement(data: InvoiceData): Promise<HTMLDivEle
   });
 
   const root = el('div', {
-    position: 'fixed',
+    position: 'absolute',
     top: '0',
-    left: '0',
+    left: '-9999px',
     width: `${INVOICE_WIDTH_PX}px`,
     minHeight: '1123px',
     background: '#ffffff',
@@ -87,9 +87,8 @@ export async function buildInvoiceElement(data: InvoiceData): Promise<HTMLDivEle
     direction: 'rtl',
     unicodeBidi: 'embed',
     boxSizing: 'border-box',
-    opacity: '0.01',
+    opacity: '1',
     pointerEvents: 'none',
-    zIndex: '-9999',
     overflow: 'hidden',
   });
   root.setAttribute('dir', 'rtl');

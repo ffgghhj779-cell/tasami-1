@@ -5,6 +5,12 @@ import type { UserBookingRow } from '../hooks/useUserBookings';
 import { calculatePricing } from './booking';
 import { buildInvoiceElement } from './invoiceTemplate';
 
+const INVOICE_RENDER_DELAY_MS = 500;
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export interface InvoiceData {
   bookingId: string;
   serviceType: string;
@@ -52,10 +58,16 @@ export function invoiceFromBookingRow(row: UserBookingRow): InvoiceData {
  */
 export async function downloadInvoicePdf(data: InvoiceData): Promise<void> {
   const element = await buildInvoiceElement(data);
+  Object.assign(element.style, {
+    position: 'absolute',
+    left: '-9999px',
+    top: '0',
+    opacity: '1',
+  });
   document.body.appendChild(element);
 
   try {
-    // Allow layout + font rasterization before capture
+    await delay(INVOICE_RENDER_DELAY_MS);
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     const canvas = await html2canvas(element, {

@@ -19,7 +19,7 @@ import {
   saveLastBooking,
   type BookingDraft,
 } from './booking';
-import { notifyMakeWebhook } from './makeWebhook';
+import { buildWebhookPayload, notifyWebhook } from './webhook';
 
 export interface BookingDocument {
   bookingId: string;
@@ -141,14 +141,14 @@ export async function submitBooking(): Promise<string> {
       updatedAt: serverTimestamp(),
     });
 
-    notifyMakeWebhook({
+    notifyWebhook(buildWebhookPayload({
       bookingId,
       customerName: docData.customerName || user.displayName || '',
       phone: docData.phone || normalizePhoneForWhatsApp(user.phoneNumber ?? ''),
       serviceType: docData.serviceType,
       schedule: `${docData.schedule.date} | ${docData.schedule.timeSlotLabel}`,
       totalPrice: docData.pricing.total,
-    });
+    }));
 
     const address = [draft.addressLine, draft.unitDetails].filter(Boolean).join('، ');
 
