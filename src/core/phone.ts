@@ -123,3 +123,10 @@ export function validatePhone(raw: string): PhoneValidationResult {
     normalized,
   };
 }
+
+/** E.164 format for Firebase Phone Auth (+966… or +20…). */
+export function formatPhoneForFirebaseAuth(raw: string): string {
+  const check = validatePhone(raw);
+  if (!check.valid || !check.normalized) return '';
+  return `+${check.normalized}`;
+}

@@ -1,25 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  GoogleAuthProvider,
   RecaptchaVerifier,
   onAuthStateChanged,
   signInWithPhoneNumber,
-  signInWithPopup,
   type ConfirmationResult,
 } from 'firebase/auth';
 import { LogIn, Phone, Volume2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
-import { isVerifiedUser } from '../core/auth';
+import {
+  isVerifiedUser,
+  mapGoogleAuthError,
+  resolveGoogleRedirectResult,
+  signInWithGoogle,
+} from '../core/auth';
+import { formatPhoneForFirebaseAuth, validatePhone } from '../core/phone';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
 import { ButtonShimmer } from '../components/ui';
 
 type PhoneStep = 'input' | 'otp';
-
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export default function Login() {
   const navigate = useNavigate();
@@ -37,12 +38,30 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let mounted = true;
+
+    resolveGoogleRedirectResult()
+      .then(user => {
+        if (mounted && isVerifiedUser(user)) {
+          navigate(returnTo, { replace: true });
+        }
+      })
+      .catch(err => {
+        if (!mounted) return;
+        const message = mapGoogleAuthError((err as { code?: string }).code);
+        if (message) setError(message);
+      });
+
     const unsub = onAuthStateChanged(auth, user => {
       if (isVerifiedUser(user)) {
         navigate(returnTo, { replace: true });
       }
     });
-    return unsub;
+
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, [navigate, returnTo]);
 
   useEffect(() => {
@@ -56,14 +75,6 @@ export default function Login() {
     e.preventDefault();
     e.stopPropagation();
     speak(text, i18n.language);
-  };
-
-  const normalizePhone = (raw: string): string => {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('966')) return `+${digits}`;
-    if (digits.startsWith('0')) return `+966${digits.slice(1)}`;
-    if (digits.startsWith('5')) return `+966${digits}`;
-    return raw.startsWith('+') ? raw : `+${digits}`;
   };
 
   const getRecaptchaVerifier = (): RecaptchaVerifier => {
@@ -83,14 +94,13 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await signInWithPopup(auth, googleProvider);
-      navigate(returnTo, { replace: true });
+      await signInWithGoogle();
+      // redirect flow navigates away; popup flow continues here
+      haptic('success');
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === 'auth/popup-closed-by-user') {
-        setError('');
-      } else {
-        setError('تعذّر تسجيل الدخول عبر Google. حاول مجدداً.');
+      const message = mapGoogleAuthError((err as { code?: string }).code);
+      if (message) {
+        setError(message);
         haptic('error');
       }
     } finally {
@@ -99,9 +109,16 @@ export default function Login() {
   };
 
   const handleSendOtp = async () => {
-    const normalized = normalizePhone(phone.trim());
-    if (!/^\+9665\d{8}$/.test(normalized.replace(/\s/g, ''))) {
-      setError('أدخل رقم جوال سعودي صحيح (مثال: 05XXXXXXXX).');
+    const phoneCheck = validatePhone(phone.trim());
+    if (!phoneCheck.valid) {
+      setError(phoneCheck.error ?? 'رقم الجوال غير صالح');
+      haptic('error');
+      return;
+    }
+
+    const e164 = formatPhoneForFirebaseAuth(phone.trim());
+    if (!e164) {
+      setError('أدخل رقم جوال مصري (010…) أو سعودي (05…) صحيح');
       haptic('error');
       return;
     }
@@ -110,7 +127,7 @@ export default function Login() {
     setError('');
     try {
       const verifier = getRecaptchaVerifier();
-      confirmationRef.current = await signInWithPhoneNumber(auth, normalized, verifier);
+      confirmationRef.current = await signInWithPhoneNumber(auth, e164, verifier);
       setPhoneStep('otp');
       haptic('light');
     } catch {
@@ -145,11 +162,11 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary relative">
       <div className="absolute top-0 start-0 w-full h-1/3 bg-text-primary/[0.06] pointer-events-none" />
       <div className="absolute -bottom-20 -end-20 w-60 h-60 rounded-full bg-accent/8 blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-sm bg-bg-card p-8 rounded-[32px] shadow-[var(--shadow-header)] border border-border/50 text-center relative z-10">
+      <div className="w-full max-w-sm bg-bg-card p-8 rounded-[32px] shadow-[var(--shadow-header)] border border-border/50 text-center relative z-10 my-8">
         <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
           <LogIn className="w-8 h-8 text-accent" />
         </div>
@@ -179,14 +196,17 @@ export default function Login() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="+966 5X XXX XXXX"
+                  placeholder="05xxxxxxxx أو 010xxxxxxxx"
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                  onChange={e => { setPhone(e.target.value); setError(''); }}
                   disabled={loading}
                   className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-11 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 text-end placeholder:text-end disabled:opacity-60"
                 />
                 <Phone className="absolute start-3.5 top-4 w-4.5 h-4.5 text-text-secondary" />
               </div>
+              <p className="text-[11px] text-text-secondary mt-2 leading-relaxed">
+                يدعم الأرقام السعودية (05…) والمصرية (010/011/012/015)
+              </p>
             </div>
 
             <button

@@ -33,8 +33,9 @@
 
 html {
   --font-active: var(--font-arabic);
-  height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   touch-action: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -54,9 +55,11 @@ html.font-arabic {
 body {
   font-family: var(--font-active);
   @apply bg-bg-primary text-text-primary;
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   touch-action: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -64,9 +67,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-#root,
-#root > * {
-  height: 100%;
+#root {
+  min-height: 100%;
   touch-action: auto;
 }
 
@@ -82,19 +84,10 @@ html.font-urdu {
   line-height: 1.85;
 }
 
-/* App shell — the ONE native scroll surface for the whole app */
+/* App shell — native document scroll; never block touch on chrome */
 .app-shell {
+  min-height: 100dvh;
   touch-action: auto;
-}
-
-.app-scroll-root {
-  height: 100%;
-  max-height: 100dvh;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  touch-action: auto !important;
-  overscroll-behavior-y: auto;
 }
 
 .select-text {

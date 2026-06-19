@@ -68,7 +68,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell app-scroll-root bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative premium-depth">
+      <div className="app-shell min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative premium-depth">
         {!isOnline && <OfflineBanner />}
         <AnimatedRoutes />
       </div>
