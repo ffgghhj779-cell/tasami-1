@@ -11,6 +11,7 @@ import {
   Sparkles,
   Loader2,
   AlertCircle,
+  Phone,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
@@ -22,8 +23,11 @@ import {
   acquireSubmitLock,
   isBookingAlreadySubmitted,
   loadBookingDraft,
+  saveBookingDraft,
 } from '../core/booking';
 import { submitBooking } from '../core/bookings';
+import { validatePhone } from '../core/phone';
+import { auth } from '../core/firebase';
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
@@ -57,6 +61,14 @@ export default function Confirm() {
   const [draft] = useState(() => loadBookingDraft());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [phone, setPhone] = useState(() => {
+    const fromDraft = loadBookingDraft()?.phone;
+    if (fromDraft) return fromDraft;
+    const authPhone = auth.currentUser?.phoneNumber;
+    if (authPhone) return authPhone.replace(/\D/g, '').replace(/^966/, '0');
+    return '';
+  });
+  const [phoneError, setPhoneError] = useState('');
 
   const hours = draft?.serviceHours ?? 2;
   const pricing = calculatePricing(hours);
@@ -84,10 +96,24 @@ export default function Confirm() {
 
   const handleConfirm = async () => {
     if (submitting || isBookingAlreadySubmitted()) return;
+
+    const phoneCheck = validatePhone(phone);
+    if (!phoneCheck.valid) {
+      setPhoneError(phoneCheck.error ?? 'رقم الجوال غير صالح');
+      return;
+    }
+    setPhoneError('');
+
     if (!acquireSubmitLock()) {
       setSubmitError('جاري معالجة الحجز… يرجى الانتظار.');
       return;
     }
+
+    saveBookingDraft({
+      phone: phone.trim(),
+      phoneNormalized: phoneCheck.normalized,
+      customerName: auth.currentUser?.displayName ?? '',
+    });
 
     setSubmitting(true);
     setSubmitError('');
@@ -167,6 +193,38 @@ export default function Confirm() {
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* ── Contact (WhatsApp) ── */}
+          <section className="glass-card rounded-[28px] p-5 shadow-card">
+            <SectionHeading
+              title="رقم الجوال للتواصل"
+              onSpeak={e => handleSpeak(e, 'رقم الجوال للتواصل عبر واتساب')}
+            />
+            <div className="relative">
+              <input
+                id="booking-phone"
+                type="tel"
+                required
+                inputMode="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={e => { setPhone(e.target.value); setPhoneError(''); setSubmitError(''); }}
+                placeholder="05xxxxxxxx"
+                dir="ltr"
+                className={`w-full bg-bg-card/80 border rounded-xl py-3.5 ps-11 pe-4 text-sm font-medium text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-accent/70 transition-all duration-300 ${
+                  phoneError ? 'border-danger/60 focus:ring-danger/40' : 'border-border/60 focus:border-accent/40'
+                }`}
+              />
+              <Phone className="absolute start-3.5 top-3.5 w-4 h-4 text-text-secondary pointer-events-none" />
+            </div>
+            {phoneError ? (
+              <p role="alert" className="text-xs text-danger font-bold mt-2">{phoneError}</p>
+            ) : (
+              <p className="text-[11px] text-text-secondary mt-2">
+                يُستخدم لإرسال تأكيد الحجز عبر واتساب (بدون +)
+              </p>
+            )}
           </section>
 
           {/* ── Price Breakdown ── */}

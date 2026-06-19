@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { auth, db } from './firebase';
+import { normalizePhoneForWhatsApp } from './phone';
 import {
   calculatePricing,
   clearBookingDraft,
@@ -61,6 +62,7 @@ function buildFirestoreDoc(
 ) {
   const hours = draft.serviceHours ?? 2;
   const pricing = calculatePricing(hours);
+  const phone = draft.phoneNormalized ?? normalizePhoneForWhatsApp(draft.phone ?? '');
 
   return {
     bookingId,
@@ -68,6 +70,8 @@ function buildFirestoreDoc(
     status: 'confirmed' as const,
     serviceType: draft.serviceType ?? 'تنظيف منزلي شامل',
     serviceHours: hours,
+    customerName: draft.customerName ?? '',
+    phone,
     address: {
       line: draft.addressLine ?? '',
       unitDetails: draft.unitDetails ?? '',
@@ -127,8 +131,8 @@ export async function submitBooking(): Promise<string> {
 
     notifyMakeWebhook({
       bookingId,
-      customerName: user.displayName ?? '',
-      phone: user.phoneNumber ?? '',
+      customerName: draft.customerName || user.displayName || '',
+      phone: docData.phone || normalizePhoneForWhatsApp(user.phoneNumber ?? ''),
       serviceType: docData.serviceType,
       schedule: `${docData.schedule.date} | ${docData.schedule.timeSlotLabel}`,
       totalPrice: docData.pricing.total,

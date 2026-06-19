@@ -10,6 +10,11 @@ export interface BookingDraft {
   date?: string;
   timeSlotId?: string;
   timeSlotLabel?: string;
+  /** Raw user input */
+  phone?: string;
+  /** Digits-only international format for WhatsApp/Ultramsg (no '+') */
+  phoneNormalized?: string;
+  customerName?: string;
 }
 
 /** Snapshot persisted after successful Firestore submit — consumed by /success */
