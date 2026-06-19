@@ -85,18 +85,20 @@ export function mapPhoneAuthError(code?: string): string {
     case 'auth/quota-exceeded':
       return 'تم استنفاد حد الرسائل اليومي. فعّل الفوترة في Firebase أو استخدم Google/البريد.';
     case 'auth/captcha-check-failed':
-      return 'فشل التحقق الأمني (reCAPTCHA). أعد تحميل الصفحة وحاول مجدداً.';
+      return 'فشل التحقق الأمني (reCAPTCHA). أكمل مربع «أنا لست روبوتاً» ثم حاول مجدداً.';
     case 'auth/missing-phone-number':
       return 'رقم الجوال مطلوب بصيغة دولية (+20… أو +966…).';
+    case 'auth/operation-not-allowed':
+      return 'تسجيل الجوال غير مفعّل لهذه الدولة. فعّل الفوترة (Blaze) في Firebase أو استخدم Google/البريد.';
     default:
-      return 'تعذّر إرسال رمز التحقق. تحقق من الرقم أو جرّب Google/البريد.';
+      return 'تعذّر إرسال رمز التحقق. أكمل reCAPTCHA أو جرّب Google/البريد.';
   }
 }
 
-export function mapEmailAuthError(code?: string): string {
+export function mapEmailAuthError(code?: string, mode: 'login' | 'register' = 'login'): string {
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'البريد مسجّل مسبقاً. سجّل الدخول بدلاً من إنشاء حساب.';
+      return 'البريد مسجّل مسبقاً. اختر «تسجيل الدخول» بدلاً من إنشاء حساب.';
     case 'auth/invalid-email':
       return 'أدخل بريداً إلكترونياً صحيحاً.';
     case 'auth/weak-password':
@@ -104,10 +106,14 @@ export function mapEmailAuthError(code?: string): string {
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'البريد أو كلمة المرور غير صحيحة.';
+      return mode === 'login'
+        ? 'البريد أو كلمة المرور غير صحيحة. إن لم يكن لديك حساب، اختر «إنشاء حساب» أعلاه.'
+        : 'تعذّر إنشاء الحساب. تحقق من البريد وكلمة المرور.';
     case 'auth/operation-not-allowed':
       return 'تسجيل البريد/كلمة المرور غير مفعّل. فعّله في Firebase Console → Sign-in method → Email/Password.';
     default:
-      return 'تعذّر تسجيل الدخول بالبريد. حاول مجدداً.';
+      return mode === 'register'
+        ? 'تعذّر إنشاء الحساب. حاول مجدداً.'
+        : 'تعذّر تسجيل الدخول بالبريد. حاول مجدداً.';
   }
 }

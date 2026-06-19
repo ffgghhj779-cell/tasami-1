@@ -5,11 +5,12 @@ import {
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from 'firebase/auth';
-import { LogIn, Phone, Mail, Volume2, AlertCircle, Lock } from 'lucide-react';
+import { LogIn, Volume2, AlertCircle, Lock, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
 import {
   isVerifiedUser,
+  isMobileAuthContext,
   mapEmailAuthError,
   mapGoogleAuthError,
   mapPhoneAuthError,
@@ -57,6 +58,11 @@ export default function Login() {
   }, [ready, user, navigate, returnTo]);
 
   useEffect(() => {
+    recaptchaVerifierRef.current?.clear();
+    recaptchaVerifierRef.current = null;
+  }, [country, authMode, phoneStep]);
+
+  useEffect(() => {
     return () => {
       recaptchaVerifierRef.current?.clear();
       recaptchaVerifierRef.current = null;
@@ -69,12 +75,13 @@ export default function Login() {
     speak(text, i18n.language);
   };
 
-  const getRecaptchaVerifier = (): RecaptchaVerifier => {
+  const getRecaptchaVerifier = async (): Promise<RecaptchaVerifier> => {
     if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current;
     if (!recaptchaRef.current) throw new Error('Recaptcha container missing');
 
+    const mobile = isMobileAuthContext();
     const verifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
-      size: 'invisible',
+      size: mobile ? 'normal' : 'invisible',
       callback: () => {},
       'expired-callback': () => {
         recaptchaVerifierRef.current?.clear();
@@ -82,6 +89,7 @@ export default function Login() {
         setError('انتهت صلاحية التحقق. أعد تحميل الصفحة.');
       },
     });
+    await verifier.render();
     recaptchaVerifierRef.current = verifier;
     return verifier;
   };
@@ -124,7 +132,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const verifier = getRecaptchaVerifier();
+      const verifier = await getRecaptchaVerifier();
       confirmationRef.current = await signInWithPhoneNumber(auth, e164, verifier);
       setPhoneStep('otp');
       haptic('light');
@@ -182,7 +190,7 @@ export default function Login() {
       haptic('success');
       navigate(returnTo, { replace: true });
     } catch (err) {
-      setError(mapEmailAuthError((err as { code?: string }).code));
+      setError(mapEmailAuthError((err as { code?: string }).code, emailMode));
       haptic('error');
     } finally {
       setLoading(false);
@@ -259,31 +267,44 @@ export default function Login() {
                 </button>
               </div>
 
-              <div className="text-start mb-6">
+              <div className="text-start mb-4">
                 <label className="text-sm font-bold text-text-primary mb-2 block">رقم الجوال</label>
-                <div className="relative">
-                  <span className="absolute start-3.5 top-3.5 text-xs font-bold text-text-secondary pointer-events-none">
+                <div className="flex gap-2 items-stretch" dir="ltr">
+                  <span className="flex items-center px-3 bg-bg-primary border border-border/60 rounded-xl text-xs font-bold text-text-secondary shrink-0">
                     {country === 'EG' ? '+20' : '+966'}
                   </span>
-                  <input
-                    dir="ltr"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    placeholder={country === 'EG' ? '10xxxxxxxx' : '5xxxxxxxx'}
-                    value={phone}
-                    onChange={e => { setPhone(e.target.value); setError(''); }}
-                    disabled={loading}
-                    className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 ps-14 pe-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 text-end disabled:opacity-60"
-                  />
-                  <Phone className="absolute end-3.5 top-4 w-4 h-4 text-text-secondary pointer-events-none" />
+                  <div className="relative flex-1">
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder={country === 'EG' ? '10xxxxxxxx' : '5xxxxxxxx'}
+                      value={phone}
+                      onChange={e => { setPhone(e.target.value); setError(''); }}
+                      disabled={loading}
+                      className="w-full bg-bg-primary border border-border/60 rounded-xl py-3.5 px-4 text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300 disabled:opacity-60"
+                    />
+                  </div>
                 </div>
+                {phone.trim() && formatPhoneForFirebaseAuth(phone.trim(), country) && (
+                  <p className="text-[10px] text-accent font-bold mt-1.5" dir="ltr">
+                    سيُرسل إلى: {formatPhoneForFirebaseAuth(phone.trim(), country)}
+                  </p>
+                )}
                 <p className="text-[11px] text-text-secondary mt-2 leading-relaxed">
                   {country === 'EG'
-                    ? 'مصر: 010 / 011 / 012 / 015 — يُرسل كـ +20…'
-                    : 'السعودية: 05x — يُرسل كـ +966…'}
+                    ? 'مصر: 010 / 011 / 012 / 015'
+                    : 'السعودية: 05x'}
                 </p>
               </div>
+
+              {/* Visible reCAPTCHA on mobile — required for Phone Auth */}
+              <div
+                ref={recaptchaRef}
+                className={isMobileAuthContext()
+                  ? 'mb-4 flex justify-center min-h-[78px]'
+                  : 'mb-0 h-px w-px opacity-0 overflow-hidden'}
+              />
 
               <button
                 type="button"
@@ -395,9 +416,6 @@ export default function Login() {
             </button>
           </>
         )}
-
-        {/* reCAPTCHA — must stay in DOM (not display:none) for Phone Auth */}
-        <div ref={recaptchaRef} className="fixed bottom-0 start-0 opacity-0 pointer-events-none w-px h-px overflow-hidden" aria-hidden="true" />
 
         <div className="flex items-center gap-4 my-2">
           <div className="flex-1 h-px bg-border" />
