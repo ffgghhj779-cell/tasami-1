@@ -78,11 +78,6 @@ html.font-urdu {
   -webkit-overflow-scrolling: touch;
 }
 
-.ui-chrome {
-  -webkit-user-select: none;
-  user-select: none;
-}
-
 .select-text {
   -webkit-user-select: text;
   user-select: text;
@@ -105,27 +100,31 @@ label[for] {
   user-select: none;
 }
 
+/* Tailwind v4 @utility — required for @apply and class usage in JSX */
+@utility gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@utility will-transform {
+  will-change: transform;
+}
+
+@utility will-opacity {
+  will-change: opacity;
+}
+
+@utility will-gpu {
+  will-change: transform, opacity;
+}
+
+@utility ui-chrome {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 @layer utilities {
-  /* ─── GPU compositing (120fps target) ─── */
-  .gpu-layer {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  .will-transform {
-    will-change: transform;
-  }
-
-  .will-opacity {
-    will-change: opacity;
-  }
-
-  .will-gpu {
-    will-change: transform, opacity;
-  }
-
-  /* ─── Native-feel scroll regions ─── */
   .native-scroll {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -215,8 +214,14 @@ label[for] {
 
   /* ─── Accent CTA Button ─── */
   .btn-accent {
-    @apply bg-accent text-white font-bold rounded-xl gpu-layer spring-tap ui-chrome;
+    @apply bg-accent text-white font-bold rounded-xl gpu-layer will-transform ui-chrome;
+    transition: transform 0.35s var(--ease-spring), opacity 0.2s var(--ease-out-expo);
+    touch-action: manipulation;
     box-shadow: var(--shadow-accent);
+  }
+  .btn-accent:active {
+    transform: translateZ(0) scale(0.96);
+    opacity: 0.92;
   }
   .btn-accent:hover {
     @apply bg-accent-hover;
@@ -232,15 +237,24 @@ label[for] {
 
   /* ─── Speaker Button ─── */
   .btn-speak {
-    @apply p-1.5 rounded-full gpu-layer spring-tap ui-chrome;
+    @apply p-1.5 rounded-full gpu-layer will-transform ui-chrome;
+    transition: transform 0.35s var(--ease-spring), opacity 0.2s var(--ease-out-expo);
+    touch-action: manipulation;
   }
   .btn-speak:active {
+    transform: translateZ(0) scale(0.96);
     @apply opacity-80;
   }
 
   /* ─── Micro-animation base ─── */
   .interactive-card {
-    @apply gpu-layer spring-tap ui-chrome;
+    @apply gpu-layer will-transform ui-chrome;
+    transition: transform 0.35s var(--ease-spring), opacity 0.2s var(--ease-out-expo);
+    touch-action: manipulation;
+  }
+  .interactive-card:active {
+    transform: translateZ(0) scale(0.96);
+    opacity: 0.92;
   }
 
   /* ─── Type rhythm helpers ─── */
