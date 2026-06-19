@@ -1,13 +1,23 @@
 {
   "app": {
-    "name": "Tasami Al-Wataniah"
+    "name": "Tasami Al-Wataniah",
+    "tagline": "Trusted services, guaranteed quality"
+  },
+  "nav": {
+    "profile": "My Account",
+    "admin": "Admin",
+    "becomeArtisan": "Become Artisan",
+    "more": "More"
   },
   "home": {
     "searchPlaceholder": "What service are you looking for?",
     "categories": "Main Services",
     "howItWorks": "How Tasami Works?",
     "topArtisans": "Top Verified Artisans",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "viewProfile": "View Profile",
+    "reviews": "reviews",
+    "noSearchResults": "No services match your search"
   },
   "services": {
     "homeCleaning": "Home Cleaning",
@@ -25,5 +35,94 @@
     "step3Desc": "Secure payment and confirm",
     "step4Title": "Artisan Arrival",
     "step4Desc": "High quality service delivery"
+  },
+  "pages": {
+    "langSelect": "Choose Language",
+    "home": "Home",
+    "login": "Login",
+    "profile": "My Account",
+    "serviceDetails": "Service Details",
+    "booking": "Schedule & Address",
+    "confirm": "Confirm Order",
+    "success": "Booking Confirmed",
+    "contracts": "Enterprise Contracts",
+    "registerArtisan": "Join as Artisan",
+    "artisanPortfolio": "Artisan Profile",
+    "how": "How It Works",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "admin": "Admin Console"
+  },
+  "common": {
+    "listen": "Listen",
+    "back": "Back",
+    "loading": "Loading…",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied",
+    "downloadInvoice": "Download Invoice",
+    "offlineBanner": "Offline mode — saved locally",
+    "guest": "Guest",
+    "user": "User",
+    "currency": "SAR",
+    "total": "Total",
+    "comingSoon": "Coming soon"
+  },
+  "login": {
+    "title": "Login / Sign Up",
+    "subtitle": "One step to access our services",
+    "phone": "Mobile Number",
+    "sendOtp": "Send Verification Code",
+    "otp": "Verification Code (OTP)",
+    "verifyOtp": "Verify Code",
+    "changePhone": "Change phone number",
+    "or": "or",
+    "google": "Continue with Google"
+  },
+  "profile": {
+    "title": "My Account",
+    "loginPrompt": "Sign in to view your bookings",
+    "loginButton": "Sign In",
+    "currentBookings": "Current Bookings",
+    "bookingHistory": "Booking History",
+    "noCurrent": "No current bookings",
+    "noPast": "No past bookings",
+    "rateService": "Rate Service",
+    "reviewSubmitted": "Review submitted ✓",
+    "reviewThanks": "Thank you! Your review was submitted."
+  },
+  "success": {
+    "title": "Booking Confirmed!",
+    "subtitle": "Your artisan will arrive at the scheduled time. Keep your order number for tracking.",
+    "orderNumber": "Order Number",
+    "summary": "Order Summary",
+    "service": "Service",
+    "date": "Date",
+    "time": "Time",
+    "address": "Address",
+    "pwaTitle": "Add to Home Screen",
+    "installNow": "Install App Now",
+    "whatsapp": "Track via WhatsApp",
+    "returnHome": "Return to Home"
+  },
+  "contracts": {
+    "intro": "Flexible contract packages for all sectors with the highest quality standards.",
+    "requestQuote": "Request Quote",
+    "successToast": "Quote request sent! Our team will contact you soon."
+  },
+  "artisan": {
+    "portfolioTitle": "Artisan Profile",
+    "gallery": "Portfolio Gallery",
+    "reviews": "Latest Reviews",
+    "rating": "Rating",
+    "reviewCount": "Reviews",
+    "experience": "Years Experience",
+    "noReviews": "No reviews yet — be the first!",
+    "whatsapp": "Contact via WhatsApp"
+  },
+  "offline": {
+    "banner": "Offline mode — saved locally"
   }
 }

@@ -1,5 +1,128 @@
 {
   "app": {
-    "name": "Tasami Al-Wataniah"
+    "name": "Tasami Al-Wataniah",
+    "tagline": "Mapagkakatiwalaang serbisyo, garantisadong kalidad"
+  },
+  "nav": {
+    "profile": "Aking Account",
+    "admin": "Admin",
+    "becomeArtisan": "Maging Artisan",
+    "more": "Higit Pa"
+  },
+  "home": {
+    "searchPlaceholder": "Anong serbisyo ang hinahanap mo?",
+    "categories": "Pangunahing Serbisyo",
+    "howItWorks": "Paano Gumagana ang Tasami?",
+    "topArtisans": "Nangungunang Artisans",
+    "viewAll": "Tingnan Lahat",
+    "viewProfile": "Tingnan Profile",
+    "reviews": "mga review",
+    "noSearchResults": "Walang serbisyong tumugma sa iyong paghahanap"
+  },
+  "services": {
+    "homeCleaning": "Paglilinis ng Bahay",
+    "acMaintenance": "Pag-aayos ng AC",
+    "shopContracts": "Kontrata sa Tindahan",
+    "hotelContracts": "Kontrata sa Hotel",
+    "enterprise": "Kontrata ng Kumpanya"
+  },
+  "howSteps": {
+    "step1Title": "Pumili ng Serbisyo",
+    "step1Desc": "Piliin ang eksaktong serbisyong kailangan mo",
+    "step2Title": "Itakda ang Oras",
+    "step2Desc": "Pumili ng angkop na oras",
+    "step3Title": "Kumpirmahin ang Order",
+    "step3Desc": "Ligtas na pagbabayad at kumpirmasyon",
+    "step4Title": "Pagdating ng Artisan",
+    "step4Desc": "Mataas na kalidad na serbisyo"
+  },
+  "pages": {
+    "langSelect": "Pumili ng Wika",
+    "home": "Home",
+    "login": "Mag-login",
+    "profile": "Aking Account",
+    "serviceDetails": "Detalye ng Serbisyo",
+    "booking": "Iskedyul at Address",
+    "confirm": "Kumpirmahin ang Order",
+    "success": "Nakumpirma ang Booking",
+    "contracts": "Kontrata ng Kumpanya",
+    "registerArtisan": "Sumali bilang Artisan",
+    "artisanPortfolio": "Profile ng Artisan",
+    "how": "Paano Gumagana",
+    "terms": "Mga Tuntunin",
+    "privacy": "Patakaran sa Privacy",
+    "admin": "Admin Console"
+  },
+  "common": {
+    "listen": "Makinig",
+    "back": "Bumalik",
+    "loading": "Naglo-load…",
+    "submit": "Isumite",
+    "cancel": "Kanselahin",
+    "close": "Isara",
+    "copy": "Kopyahin",
+    "copied": "Nakopya",
+    "downloadInvoice": "I-download ang Invoice",
+    "offlineBanner": "Offline mode — naka-save locally",
+    "guest": "Bisita",
+    "user": "User",
+    "currency": "SAR",
+    "total": "Kabuuan",
+    "comingSoon": "Malapit na"
+  },
+  "login": {
+    "title": "Mag-login / Gumawa ng Account",
+    "subtitle": "Isang hakbang para ma-access ang aming serbisyo",
+    "phone": "Numero ng Mobile",
+    "sendOtp": "Ipadala ang Verification Code",
+    "otp": "Verification Code (OTP)",
+    "verifyOtp": "Kumpirmahin ang Code",
+    "changePhone": "Palitan ang numero",
+    "or": "o",
+    "google": "Magpatuloy sa Google"
+  },
+  "profile": {
+    "title": "Aking Account",
+    "loginPrompt": "Mag-login para makita ang iyong mga booking",
+    "loginButton": "Mag-login",
+    "currentBookings": "Kasalukuyang Bookings",
+    "bookingHistory": "Kasaysayan ng Booking",
+    "noCurrent": "Walang kasalukuyang booking",
+    "noPast": "Walang nakaraang booking",
+    "rateService": "I-rate ang Serbisyo",
+    "reviewSubmitted": "Na-submit ang review ✓",
+    "reviewThanks": "Salamat! Na-submit ang iyong review."
+  },
+  "success": {
+    "title": "Nakumpirma ang Booking!",
+    "subtitle": "Darating ang artisan sa naka-iskedyul na oras. Itago ang order number para sa tracking.",
+    "orderNumber": "Order Number",
+    "summary": "Buod ng Order",
+    "service": "Serbisyo",
+    "date": "Petsa",
+    "time": "Oras",
+    "address": "Address",
+    "pwaTitle": "Idagdag sa Home Screen",
+    "installNow": "I-install ang App",
+    "whatsapp": "I-track sa WhatsApp",
+    "returnHome": "Bumalik sa Home"
+  },
+  "contracts": {
+    "intro": "Flexible na kontrata para sa lahat ng sektor na may mataas na kalidad.",
+    "requestQuote": "Humiling ng Quote",
+    "successToast": "Naipadala ang quote request! Makikipag-ugnayan ang aming team."
+  },
+  "artisan": {
+    "portfolioTitle": "Profile ng Artisan",
+    "gallery": "Gallery ng Gawa",
+    "reviews": "Pinakabagong Reviews",
+    "rating": "Rating",
+    "reviewCount": "Reviews",
+    "experience": "Taon ng Karanasan",
+    "noReviews": "Wala pang review — maging una!",
+    "whatsapp": "Makipag-ugnayan sa WhatsApp"
+  },
+  "offline": {
+    "banner": "Offline mode — naka-save locally"
   }
 }

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, Home, Copy, Volume2 } from 'lucide-react';
+import { ShieldAlert, Home, Copy, Volume2, LogIn } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { auth } from '../core/firebase';
 import { checkIsAdmin } from '../core/admin';
 import { speak } from '../core/utils';
+import { PageSkeleton } from '../components/ui';
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -14,44 +16,45 @@ type GuardState = 'loading' | 'authorized' | 'denied';
 
 export default function AdminGuard({ children }: AdminGuardProps) {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const [state, setState] = useState<GuardState>('loading');
   const [uid, setUid] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async user => {
-      let currentUser = user;
+    let mounted = true;
 
-      if (!currentUser) {
-        try {
-          const cred = await signInAnonymously(auth);
-          currentUser = cred.user;
-        } catch {
-          setState('denied');
-          return;
-        }
+    const unsubscribe = onAuthStateChanged(auth, async user => {
+      if (!mounted) return;
+
+      if (!user || user.isAnonymous) {
+        setUid(user?.uid ?? null);
+        setState('denied');
+        return;
       }
 
-      setUid(currentUser.uid);
-      const allowed = await checkIsAdmin(currentUser.uid);
-      setState(allowed ? 'authorized' : 'denied');
+      setUid(user.uid);
+      try {
+        const allowed = await checkIsAdmin(user.uid);
+        if (mounted) setState(allowed ? 'authorized' : 'denied');
+      } catch {
+        if (mounted) setState('denied');
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
     e.stopPropagation();
-    speak(text, 'ar');
+    speak(text, i18n.language);
   };
 
   if (state === 'loading') {
-    return (
-      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center gap-4">
-        <div className="w-10 h-10 rounded-full border-4 border-border border-t-accent animate-spin" />
-        <p className="text-sm font-bold text-text-secondary">جاري التحقق من الصلاحيات…</p>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (state === 'denied') {
@@ -69,9 +72,10 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             </button>
           </h1>
           <p className="text-sm text-text-secondary font-medium mb-5 leading-relaxed">
-            هذه المنطقة مخصصة للمسؤولين فقط. أضف معرّفك في{' '}
-            <code className="text-xs bg-bg-primary px-1 rounded">HARDCODED_ADMIN_UID</code>{' '}
-            أو أنشئ مستنداً في مجموعة <strong className="text-text-primary">admins</strong>.
+            هذه المنطقة مخصصة للمسؤولين المصرّح لهم فقط. يجب تسجيل الدخول بحساب Google أو
+            رقم جوال، ثم إضافة مستند في مجموعة{' '}
+            <strong className="text-text-primary">admins</strong>{' '}
+            بالحقل <code className="text-xs bg-bg-primary px-1 rounded">role: admin</code>.
           </p>
 
           {uid && (
@@ -92,13 +96,22 @@ export default function AdminGuard({ children }: AdminGuardProps) {
             </div>
           )}
 
-          <button
-            onClick={() => navigate('/home')}
-            className="btn-accent w-full py-3.5 flex items-center justify-center gap-2"
-          >
-            <Home className="w-4 h-4" />
-            العودة للرئيسية
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate('/login')}
+              className="btn-accent w-full py-3.5 flex items-center justify-center gap-2"
+            >
+              <LogIn className="w-4 h-4" />
+              تسجيل الدخول
+            </button>
+            <button
+              onClick={() => navigate('/home')}
+              className="w-full py-3.5 flex items-center justify-center gap-2 border border-border/60 rounded-xl font-bold text-text-primary hover:bg-bg-primary transition-all duration-300"
+            >
+              <Home className="w-4 h-4" />
+              العودة للرئيسية
+            </button>
+          </div>
         </div>
       </div>
     );

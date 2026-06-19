@@ -31,11 +31,13 @@ export interface BookingPricing {
   total: number;
 }
 
-const BASE_HOURLY_RATE = 45;
-const VAT_RATE = 0.15;
+export const BASE_HOURLY_RATE = 45;
+export const VAT_RATE = 0.15;
 
 const STORAGE_KEY = 'tasami_booking_draft';
 const LAST_BOOKING_KEY = 'tasami_last_booking';
+const SUBMIT_LOCK_KEY = 'tasami_booking_submit_lock';
+const SUBMIT_DONE_KEY = 'tasami_booking_submit_done';
 
 const AR_MONTHS = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -79,6 +81,11 @@ export function calculatePricing(hours = 2, baseRate = BASE_HOURLY_RATE): Bookin
   const vat = Math.round(subtotal * VAT_RATE * 10) / 10;
   const total = Math.round((subtotal + vat) * 10) / 10;
   return { subtotal, vat, total };
+}
+
+/** VAT-inclusive total — single source of truth for all price displays. */
+export function getTotalWithVat(hours = 2): number {
+  return calculatePricing(hours).total;
 }
 
 export function formatPrice(amount: number): string {
@@ -125,5 +132,51 @@ export function loadLastBooking(): LastBookingSnapshot | null {
     return raw ? (JSON.parse(raw) as LastBookingSnapshot) : null;
   } catch {
     return null;
+  }
+}
+
+/** Idempotency — prevent duplicate Firestore writes on double-click / back-nav. */
+export function isBookingAlreadySubmitted(): boolean {
+  try {
+    return sessionStorage.getItem(SUBMIT_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function acquireSubmitLock(): boolean {
+  try {
+    if (sessionStorage.getItem(SUBMIT_DONE_KEY) === '1') return false;
+    if (sessionStorage.getItem(SUBMIT_LOCK_KEY) === '1') return false;
+    sessionStorage.setItem(SUBMIT_LOCK_KEY, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function releaseSubmitLock(): void {
+  try {
+    sessionStorage.removeItem(SUBMIT_LOCK_KEY);
+  } catch {
+    /* non-blocking */
+  }
+}
+
+export function markBookingSubmitted(): void {
+  try {
+    sessionStorage.setItem(SUBMIT_DONE_KEY, '1');
+    sessionStorage.removeItem(SUBMIT_LOCK_KEY);
+  } catch {
+    /* non-blocking */
+  }
+}
+
+export function clearSubmitState(): void {
+  try {
+    sessionStorage.removeItem(SUBMIT_DONE_KEY);
+    sessionStorage.removeItem(SUBMIT_LOCK_KEY);
+  } catch {
+    /* non-blocking */
   }
 }

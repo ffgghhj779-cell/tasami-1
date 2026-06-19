@@ -12,15 +12,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == uid;
     }
 
-    function isHardcodedAdmin() {
-      return isAuthenticated()
-        && request.auth.uid == 'Loeyivasx8YGMPfN8NUAFcZVSAJ3';
-    }
-
     function isAdmin() {
-      return isHardcodedAdmin()
-        || (isAuthenticated()
-          && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isArtisan() {
@@ -38,35 +33,95 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
+    function isValidBookingCreate() {
+      let data = request.resource.data;
+      return data.bookingId is string
+        && data.bookingId.size() >= 8
+        && data.bookingId.size() <= 64
+        && data.userId is string
+        && data.status == 'confirmed'
+        && data.serviceType is string
+        && data.serviceType.size() >= 2
+        && data.serviceType.size() <= 100
+        && data.serviceHours is int
+        && data.serviceHours >= 1
+        && data.serviceHours <= 12
+        && data.address is map
+        && data.address.line is string
+        && data.address.line.size() >= 3
+        && data.address.line.size() <= 300
+        && data.address.unitDetails is string
+        && data.address.unitDetails.size() <= 200
+        && data.address.coordinates is map
+        && data.address.coordinates.latitude is number
+        && data.address.coordinates.longitude is number
+        && data.schedule is map
+        && data.schedule.date is string
+        && data.schedule.date.size() == 10
+        && data.schedule.timeSlotId is string
+        && data.schedule.timeSlotId.size() >= 2
+        && data.schedule.timeSlotId.size() <= 20
+        && data.schedule.timeSlotLabel is string
+        && data.schedule.timeSlotLabel.size() <= 80
+        && data.pricing is map
+        && data.pricing.subtotal is number
+        && data.pricing.subtotal > 0
+        && data.pricing.subtotal <= 10000
+        && data.pricing.vat is number
+        && data.pricing.vat >= 0
+        && data.pricing.total is number
+        && data.pricing.total > 0
+        && data.pricing.total <= 12000
+        && data.pricing.currency == 'SAR';
+    }
+
+    // ─── Services catalog — public read ────────────────────────────
+    match /services/{serviceId} {
+      allow read: if resource.data.active == true;
+      allow write: if isAdmin();
+    }
+
     // ─── Default deny ────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // ─── Users — own profile only ────────────────────────────────
+    // ─── Users — own profile only, allowlisted fields ────────────
     match /users/{userId} {
-      allow read, create, update: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'phone', 'email', 'language', 'createdAt', 'updatedAt'
+        ]);
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['displayName', 'phone', 'email', 'language', 'updatedAt']);
       allow delete: if false;
     }
 
     // ─── Bookings — customers own their bookings ─────────────────
     match /bookings/{bookingDocId} {
       allow create: if isNewBookingOwner()
+        && isValidBookingCreate()
         && request.resource.data.keys().hasAll([
           'bookingId', 'userId', 'status', 'serviceType',
           'serviceHours', 'address', 'schedule', 'pricing',
           'createdAt', 'updatedAt'
-        ])
-        && request.resource.data.status == 'confirmed';
+        ]);
 
       allow read: if isBookingOwner() || isAdmin()
         || (isArtisan() && resource.data.status in ['assigned', 'completed']);
 
-      allow update: if isBookingOwner()
+      allow update: if (
+        isBookingOwner()
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'updatedAt'])
-        || isAdmin();
+      ) || (
+        isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt', 'assignedArtisanId'])
+      );
 
       allow delete: if isAdmin();
     }
@@ -79,18 +134,51 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ─── Admins — admin-only ─────────────────────────────────────
+    // ─── Admins — admin-only read; writes via Console / Admin SDK ─
     match /admins/{adminId} {
       allow read: if isAdmin() || isOwner(adminId);
-      allow write: if false; // managed via Firebase Console / Admin SDK only
+      allow write: if false;
     }
 
     // ─── Contracts (enterprise quotes) ─────────────────────────────
     match /contracts/{contractId} {
       allow create: if isAuthenticated()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'packageType', 'message', 'status', 'createdAt'])
+        && request.resource.data.userId is string
+        && request.resource.data.packageType is string
+        && request.resource.data.packageType.size() >= 2
+        && request.resource.data.packageType.size() <= 80
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 5
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.status == 'pending';
       allow read: if isAuthenticated()
         && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── Reviews — customers rate completed bookings ─────────────────
+    match /reviews/{reviewId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() >= 2
+        && request.resource.data.comment.size() <= 500
+        && request.resource.data.artisanId is string
+        && request.resource.data.artisanId.size() >= 1
+        && request.resource.data.artisanId.size() <= 128
+        && request.resource.data.bookingDocId is string
+        && request.resource.data.bookingId is string
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 80
+        && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingDocId)).data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingDocId)).data.status == 'completed';
+
+      allow read: if isAuthenticated();
       allow update, delete: if isAdmin();
     }
   }

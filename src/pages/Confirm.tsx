@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight,
-  ChevronLeft,
   ShieldAlert,
   CheckCircle2,
   Volume2,
@@ -16,10 +14,13 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
+import { PageHeader } from '../components/ui';
 import {
   calculatePricing,
   formatArabicDate,
   formatPrice,
+  acquireSubmitLock,
+  isBookingAlreadySubmitted,
   loadBookingDraft,
 } from '../core/booking';
 import { submitBooking } from '../core/bookings';
@@ -53,7 +54,7 @@ function SectionHeading({
 export default function Confirm() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const draft = loadBookingDraft();
+  const [draft] = useState(() => loadBookingDraft());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -66,6 +67,10 @@ export default function Confirm() {
   const fullAddress = [draft?.addressLine, draft?.unitDetails].filter(Boolean).join('، ');
 
   useEffect(() => {
+    if (isBookingAlreadySubmitted()) {
+      navigate('/success', { replace: true });
+      return;
+    }
     if (!draft?.date || !draft?.addressLine) {
       navigate('/booking', { replace: true });
     }
@@ -78,7 +83,12 @@ export default function Confirm() {
   };
 
   const handleConfirm = async () => {
-    if (submitting) return;
+    if (submitting || isBookingAlreadySubmitted()) return;
+    if (!acquireSubmitLock()) {
+      setSubmitError('جاري معالجة الحجز… يرجى الانتظار.');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -98,35 +108,11 @@ export default function Confirm() {
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
-
-      {/* Header */}
-      <div className="bg-text-primary px-4 pt-12 pb-5 rounded-b-[32px] shadow-[var(--shadow-header)] sticky top-0 z-20 flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95"
-          aria-label="رجوع"
-        >
-          {i18n.dir() === 'rtl'
-            ? <ChevronRight className="w-5 h-5 text-white" />
-            : <ChevronLeft className="w-5 h-5 text-white" />}
-        </button>
-        <div className="flex-1 text-center">
-          <p className="text-accent/80 text-[10px] font-bold tracking-widest mb-0.5">
-            الخطوة {toEasternArabic(3)} من {toEasternArabic(3)}
-          </p>
-          <h1 className="text-lg font-bold text-white flex items-center justify-center gap-2">
-            تأكيد الطلب
-            <button
-              onClick={e => handleSpeak(e, 'تأكيد الطلب')}
-              aria-label="استمع"
-              className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95"
-            >
-              <Volume2 className="w-4 h-4 text-accent" />
-            </button>
-          </h1>
-        </div>
-        <div className="w-9" />
-      </div>
+      <PageHeader
+        title="تأكيد الطلب"
+        subtitle={`الخطوة ${toEasternArabic(3)} من ${toEasternArabic(3)}`}
+        onSpeak={e => handleSpeak(e, 'تأكيد الطلب')}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 pb-32 space-y-4">

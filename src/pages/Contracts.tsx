@@ -1,11 +1,11 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Briefcase, Building2, UserCheck, Wind, Volume2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Briefcase, Building2, UserCheck, Wind, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak } from '../core/utils';
+import { PageHeader, Toast } from '../components/ui';
+import { ContractQuoteModal } from '../components/ContractQuoteModal';
+import { submitContractQuote } from '../core/contracts';
 
-// FIXED: All Tailwind default colors (amber, purple, sky, rose) replaced with brand palette.
-// Each package uses a tint of the brand design tokens only.
 const packages = [
   {
     title: 'عقود المحلات التجارية',
@@ -38,8 +38,9 @@ const packages = [
 ];
 
 export default function Contracts() {
-  const navigate = useNavigate();
   const { i18n } = useTranslation();
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -47,22 +48,25 @@ export default function Contracts() {
     speak(text, i18n.language);
   };
 
+  const handleSubmit = async (data: {
+    companyName: string;
+    phone: string;
+    requiredService: string;
+  }) => {
+    if (!selectedPackage) return;
+    await submitContractQuote({
+      packageType: selectedPackage,
+      ...data,
+    });
+    setShowSuccess(true);
+  };
+
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
-
-      {/* Header */}
-      <div className="bg-text-primary px-4 pt-12 pb-6 rounded-b-[32px] shadow-[var(--shadow-header)] sticky top-0 z-10 flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95">
-          {i18n.dir() === 'rtl' ? <ChevronRight className="w-5 h-5 text-white" /> : <ChevronLeft className="w-5 h-5 text-white" />}
-        </button>
-        <h1 className="text-xl font-bold flex-1 text-center truncate text-white flex items-center justify-center gap-2">
-          عقود الشركات
-          <button onClick={(e) => handleSpeak(e, 'عقود الشركات')} aria-label="استمع" className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95">
-            <Volume2 className="w-4 h-4 text-accent" />
-          </button>
-        </h1>
-        <div className="w-9" />
-      </div>
+      <PageHeader
+        title="عقود الشركات"
+        onSpeak={e => handleSpeak(e, 'عقود الشركات')}
+      />
 
       <div className="flex-1 p-5 overflow-y-auto pb-12">
         <p className="text-text-secondary text-sm font-medium leading-relaxed mb-6">
@@ -71,27 +75,56 @@ export default function Contracts() {
         </p>
 
         <div className="flex flex-col gap-4">
-          {packages.map((pkg, idx) => (
+          {packages.map(pkg => (
             <div
-              key={idx}
+              key={pkg.title}
               className="bg-bg-card border border-border/50 rounded-[24px] p-5 shadow-card hover:shadow-[var(--shadow-card-hover)] interactive-card"
             >
               <div className="flex gap-4 items-center">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${pkg.iconBg} ${pkg.iconFg} transition-transform duration-300`}>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${pkg.iconBg} ${pkg.iconFg}`}>
                   {pkg.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-text-primary mb-1">{pkg.title}</h3>
+                  <h3 className="font-bold text-text-primary mb-1 flex items-center gap-2">
+                    {pkg.title}
+                    <button
+                      onClick={e => handleSpeak(e, pkg.title)}
+                      aria-label="استمع"
+                      className="btn-speak"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-text-secondary" />
+                    </button>
+                  </h3>
                   <p className="text-xs text-text-secondary font-medium leading-relaxed">{pkg.desc}</p>
                 </div>
               </div>
-              <button className="w-full mt-4 bg-bg-primary border border-border/60 text-text-primary font-bold py-3 rounded-xl text-sm transition-all duration-300 hover:bg-accent hover:text-white hover:border-transparent hover:shadow-[var(--shadow-accent)] active:scale-95">
+              <button
+                type="button"
+                onClick={() => setSelectedPackage(pkg.title)}
+                className="w-full mt-4 bg-bg-primary border border-border/60 text-text-primary font-bold py-3 rounded-xl text-sm transition-all duration-300 hover:bg-accent hover:text-white hover:border-transparent hover:shadow-[var(--shadow-accent)] active:scale-95"
+              >
                 طلب عرض سعر
               </button>
             </div>
           ))}
         </div>
       </div>
+
+      <ContractQuoteModal
+        open={!!selectedPackage}
+        packageTitle={selectedPackage ?? ''}
+        onClose={() => setSelectedPackage(null)}
+        onSubmit={handleSubmit}
+        speakLang={i18n.language}
+      />
+
+      {showSuccess && (
+        <Toast
+          message="تم إرسال طلب عرض السعر! سيتواصل معك فريقنا قريباً."
+          variant="success"
+          onClose={() => setShowSuccess(false)}
+        />
+      )}
     </div>
   );
 }

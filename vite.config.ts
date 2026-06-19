@@ -10,7 +10,7 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         injectRegister: 'auto',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
@@ -55,8 +55,28 @@ export default defineConfig(() => {
           orientation: 'portrait',
           dir: 'rtl',
           lang: 'ar',
+          start_url: '/',
+          scope: '/',
+          categories: ['utilities', 'lifestyle'],
           icons: [
-            // Icons will be placed in public/assets/icons later
+            {
+              src: '/icons/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/icons/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/icons/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            }
           ]
         }
       })
@@ -64,6 +84,18 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+            'vendor-i18n': ['i18next', 'react-i18next'],
+          },
+        },
       },
     },
     server: {

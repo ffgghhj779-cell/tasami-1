@@ -1,5 +1,128 @@
 {
   "app": {
-    "name": "تسامی الوطنیہ"
+    "name": "تسامی الوطنیہ",
+    "tagline": "قابلِ اعتماد خدمات، یقینی معیار"
+  },
+  "nav": {
+    "profile": "میرا اکاؤنٹ",
+    "admin": "انتظامیہ",
+    "becomeArtisan": "فنکار بنیں",
+    "more": "مزید"
+  },
+  "home": {
+    "searchPlaceholder": "آپ کون سی خدمت تلاش کر رہے ہیں؟",
+    "categories": "اہم خدمات",
+    "howItWorks": "تسامی کیسے کام کرتی ہے؟",
+    "topArtisans": "سر فہرست تصدیق شدہ فنکار",
+    "viewAll": "سب دیکھیں",
+    "viewProfile": "پروفائل دیکھیں",
+    "reviews": "جائزے",
+    "noSearchResults": "آپ ki تلاش سے کوئی خدمت نہیں ملی"
+  },
+  "services": {
+    "homeCleaning": "گھر ki صفائی",
+    "acMaintenance": "اے سی ki دیکھ بھال",
+    "shopContracts": "دکانوں کے معاہدے",
+    "hotelContracts": "ہوٹل معاہدے",
+    "enterprise": "کارپوریٹ معاہدے"
+  },
+  "howSteps": {
+    "step1Title": "خدمت منتخب کریں",
+    "step1Desc": "درکار خدمت درستگی سے منتخب کریں",
+    "step2Title": "وقت مقرر کریں",
+    "step2Desc": "اپنے لیے مناسب وقت چنیں",
+    "step3Title": "درخواست کی تصدیق",
+    "step3Desc": "محفوظ ادائیگی اور بکنگ کی تصدیق",
+    "step4Title": "فنکار ki آمد",
+    "step4Desc": "اعلیٰ معیار ki خدمت ki فراہمی"
+  },
+  "pages": {
+    "langSelect": "زبان منتخب کریں",
+    "home": "مرکزی صفحہ",
+    "login": "لاگ ان",
+    "profile": "میرا اکاؤنٹ",
+    "serviceDetails": "خدمت ki تفصیل",
+    "booking": "وقت اور پتہ",
+    "confirm": "آرڈر کی تصدیق",
+    "success": "بکنگ مکمل",
+    "contracts": "کارپوریٹ معاہدے",
+    "registerArtisan": "فنکار کے طور پر شامل ہوں",
+    "artisanPortfolio": "فنکار ki پروفائل",
+    "how": "تسامی کیسے کام کرتی ہے؟",
+    "terms": "شرائط و ضوابط",
+    "privacy": "رازداری ki پالیسی",
+    "admin": "انتظامی کنسول"
+  },
+  "common": {
+    "listen": "سنیں",
+    "back": "واپس",
+    "loading": "لوڈ ہو رہا ہے…",
+    "submit": "جمع کرائیں",
+    "cancel": "منسوخ",
+    "close": "بند کریں",
+    "copy": "کاپی",
+    "copied": "کاپی ہو گیا",
+    "downloadInvoice": "رسید ڈاؤن لوڈ",
+    "offlineBanner": "آف لائن موڈ — مقامی طور پر محفوظ",
+    "guest": "مہمان",
+    "user": "صارف",
+    "currency": "ریال",
+    "total": "کل",
+    "comingSoon": "جلد آ رہا ہے"
+  },
+  "login": {
+    "title": "لاگ ان / اکاؤنٹ بنائیں",
+    "subtitle": "خدمات تک رسائی ka ایک قدم",
+    "phone": "موبائل نمبر",
+    "sendOtp": "تصدیقی کوڈ بھیجیں",
+    "otp": "تصدیقی کوڈ (OTP)",
+    "verifyOtp": "کوڈ کی تصدیق",
+    "changePhone": "موبائل نمبر تبدیل کریں",
+    "or": "یا",
+    "google": "Google سے جاری رکھیں"
+  },
+  "profile": {
+    "title": "میرا اکاؤنٹ",
+    "loginPrompt": "بکنگز دیکھنے ke لیے لاگ ان کریں",
+    "loginButton": "لاگ ان",
+    "currentBookings": "موجودہ بکنگز",
+    "bookingHistory": "بکنگ ki تاریخ",
+    "noCurrent": "کوئی موجودہ بکنگ نہیں",
+    "noPast": "کوئی سابقہ بکنگ نہیں",
+    "rateService": "خدمت کی درجہ بندی",
+    "reviewSubmitted": "جائزہ جمع ✓",
+    "reviewThanks": "شکریہ! آپ ka جائزہ جمع ہو گیا۔"
+  },
+  "success": {
+    "title": "بکنگ ki تصدیق!",
+    "subtitle": "فنکار مقررہ وقت پر پہنچے گا۔ ٹریکنگ ke لیے آرڈر نمبر محفوظ رکھیں۔",
+    "orderNumber": "آرڈر نمبر",
+    "summary": "آرڈر ka خلاصہ",
+    "service": "خدمت",
+    "date": "تاریخ",
+    "time": "وقت",
+    "address": "پتہ",
+    "pwaTitle": "ہوم اسکرین پر شامل کریں",
+    "installNow": "ابھی ایپ انسٹال کریں",
+    "whatsapp": "واٹس ایپ سے ٹریک کریں",
+    "returnHome": "مرکزی صفحے پر واپس"
+  },
+  "contracts": {
+    "intro": "تمام شعبوں ke لیے لچکدار معاہداتی پیکجز اعلیٰ معیار ke ساتھ۔",
+    "requestQuote": "قیمت ka درخواست",
+    "successToast": "درخواست بھیج دی گئی! ہمari ٹیم جلد رابطہ کرے گی۔"
+  },
+  "artisan": {
+    "portfolioTitle": "فنکار ki پروفائل",
+    "gallery": "کاموں ki گیلری",
+    "reviews": "تازہ جائزے",
+    "rating": "درجہ بندی",
+    "reviewCount": "جائزے",
+    "experience": "سال ka تجربہ",
+    "noReviews": "ابھی کوئی جائزہ نہیں — پہلے بنیں!",
+    "whatsapp": "واٹس ایپ سے رابطہ"
+  },
+  "offline": {
+    "banner": "آف لائن موڈ — مقامی طور پر محفوظ"
   }
 }

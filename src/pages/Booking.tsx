@@ -4,8 +4,6 @@ import {
   MapPin,
   Calendar,
   Clock,
-  ChevronLeft,
-  ChevronRight,
   Volume2,
   Navigation,
   Home,
@@ -13,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
+import { PageHeader, MapSkeleton } from '../components/ui';
 import {
   RIYADH_CENTER,
   TIME_SLOTS,
@@ -26,15 +25,6 @@ import type { BookingMapHandle } from '../components/booking/BookingMap';
 
 // Leaflet map — lazy-loaded on /booking only
 const BookingMap = lazy(() => import('../components/booking/BookingMap'));
-
-function MapSkeleton() {
-  return (
-    <div className="w-full h-full bg-bg-primary flex flex-col items-center justify-center gap-3">
-      <div className="w-10 h-10 rounded-full border-4 border-border border-t-accent animate-spin" />
-      <span className="text-xs font-bold text-text-secondary">جاري تحميل الخريطة…</span>
-    </div>
-  );
-}
 
 function SectionHeading({
   icon,
@@ -138,35 +128,11 @@ export default function Booking() {
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
-
-      {/* Header */}
-      <div className="bg-text-primary px-4 pt-12 pb-5 rounded-b-[32px] shadow-[var(--shadow-header)] sticky top-0 z-20 flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95"
-          aria-label="رجوع"
-        >
-          {i18n.dir() === 'rtl'
-            ? <ChevronRight className="w-5 h-5 text-white" />
-            : <ChevronLeft className="w-5 h-5 text-white" />}
-        </button>
-        <div className="flex-1 text-center">
-          <p className="text-accent/80 text-[10px] font-bold tracking-widest mb-0.5">
-            الخطوة {toEasternArabic(2)} من {toEasternArabic(3)}
-          </p>
-          <h1 className="text-lg font-bold text-white flex items-center justify-center gap-2">
-            الموعد والعنوان
-            <button
-              onClick={e => handleSpeak(e, 'الموعد والعنوان')}
-              aria-label="استمع"
-              className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95"
-            >
-              <Volume2 className="w-4 h-4 text-accent" />
-            </button>
-          </h1>
-        </div>
-        <div className="w-9" />
-      </div>
+      <PageHeader
+        title="الموعد والعنوان"
+        subtitle={`الخطوة ${toEasternArabic(2)} من ${toEasternArabic(3)}`}
+        onSpeak={e => handleSpeak(e, 'الموعد والعنوان')}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 pb-28 space-y-5">

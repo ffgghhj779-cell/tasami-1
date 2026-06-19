@@ -14,7 +14,8 @@ service firebase.storage {
 
     function isAdmin() {
       return isAuthenticated()
-        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isArtisan() {
@@ -39,10 +40,10 @@ service firebase.storage {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    // ─── Artisan portfolio images ──────────────────────────────────
+    // ─── Artisan portfolio — owner or admin only ───────────────────
     match /artisans/{artisanId}/portfolio/{fileName} {
       allow read: if isAuthenticated();
-      allow write: if (isOwner(artisanId) || isArtisan()) && isValidImage();
+      allow write: if (isOwner(artisanId) || isAdmin()) && isValidImage();
       allow delete: if isOwner(artisanId) || isAdmin();
     }
 

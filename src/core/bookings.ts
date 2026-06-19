@@ -10,10 +10,14 @@ import {
   clearBookingDraft,
   formatArabicDate,
   formatPrice,
+  isBookingAlreadySubmitted,
   loadBookingDraft,
+  markBookingSubmitted,
+  releaseSubmitLock,
   saveLastBooking,
   type BookingDraft,
 } from './booking';
+import { notifyMakeWebhook } from './makeWebhook';
 
 export interface BookingDocument {
   bookingId: string;
@@ -42,15 +46,12 @@ export interface BookingDocument {
 }
 
 export function generateBookingId(): string {
-  const num = Math.floor(10000 + Math.random() * 90000);
-  return `ORD-${num}`;
+  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `ORD-${suffix}`;
 }
 
 export function formatBookingIdDisplay(bookingId: string): string {
-  const [prefix, digits] = bookingId.split('-');
-  if (!digits) return bookingId;
-  const eastern = digits.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
-  return `${prefix}-${eastern}`;
+  return bookingId.replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
 }
 
 function buildFirestoreDoc(
@@ -98,13 +99,18 @@ async function ensureAuthenticatedUser() {
 /**
  * Reads the sessionStorage draft, authenticates anonymously if needed,
  * writes to Firestore `bookings`, saves a success snapshot, and clears the draft.
+ * Caller must acquire the submit lock before invoking (see Confirm.tsx).
  */
 export async function submitBooking(): Promise<string> {
+  if (isBookingAlreadySubmitted()) {
+    throw new Error('تم تأكيد هذا الحجز مسبقاً.');
+  }
+
   const draft = loadBookingDraft();
 
   if (!draft?.date || !draft?.addressLine) {
+    releaseSubmitLock();
     const msg = 'بيانات الحجز غير مكتملة. يرجى العودة وإكمال التفاصيل.';
-    window.alert(msg);
     throw new Error(msg);
   }
 
@@ -119,31 +125,42 @@ export async function submitBooking(): Promise<string> {
       updatedAt: serverTimestamp(),
     });
 
-    const hours = draft.serviceHours ?? 2;
-    const pricing = calculatePricing(hours);
+    notifyMakeWebhook({
+      bookingId,
+      customerName: user.displayName ?? '',
+      phone: user.phoneNumber ?? '',
+      serviceType: docData.serviceType,
+      schedule: `${docData.schedule.date} | ${docData.schedule.timeSlotLabel}`,
+      totalPrice: docData.pricing.total,
+    });
+
     const address = [draft.addressLine, draft.unitDetails].filter(Boolean).join('، ');
 
     saveLastBooking({
       bookingId,
       serviceType: docData.serviceType,
-      serviceHours: hours,
+      serviceHours: docData.serviceHours,
       date: draft.date,
       dateFormatted: formatArabicDate(draft.date),
       timeSlotLabel: draft.timeSlotLabel ?? '',
       address,
-      total: pricing.total,
-      totalFormatted: formatPrice(pricing.total),
+      total: docData.pricing.total,
+      totalFormatted: formatPrice(docData.pricing.total),
     });
 
+    markBookingSubmitted();
     clearBookingDraft();
     return bookingId;
   } catch (err) {
+    releaseSubmitLock();
     const message =
-      err instanceof Error && err.message.includes('بيانات الحجز')
+      err instanceof Error && (
+        err.message.includes('بيانات الحجز') ||
+        err.message.includes('تم تأكيد')
+      )
         ? err.message
         : 'تعذّر حفظ الحجز في قاعدة البيانات. تحقق من الاتصال بالإنترنت وحاول مجدداً.';
 
-    window.alert(message);
     throw new Error(message);
   }
 }

@@ -16,6 +16,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
 import { formatBookingIdDisplay } from '../core/bookings';
+import { DownloadInvoiceButton } from '../components/DownloadInvoiceButton';
+import { Confetti } from '../components/Confetti';
+import { invoiceFromSnapshot } from '../core/invoice';
 import { loadLastBooking } from '../core/booking';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -87,7 +90,8 @@ export default function Success() {
   const displayId = formatBookingIdDisplay(booking.bookingId);
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col overflow-y-auto">
+    <div className="min-h-screen bg-bg-primary flex flex-col overflow-y-auto relative">
+      <Confetti />
 
       <div className="flex-1 flex flex-col items-center p-5 pt-14 pb-8 max-w-md mx-auto w-full">
 
@@ -256,6 +260,11 @@ export default function Success() {
             )}
           </div>
         )}
+
+        {/* Download invoice */}
+        <div className="success-fade-up w-full mb-3" style={{ animationDelay: '0.28s' }}>
+          <DownloadInvoiceButton data={invoiceFromSnapshot(booking)} />
+        </div>
 
         {/* WhatsApp tracking */}
         <button

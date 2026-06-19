@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Sparkles, Wind, Briefcase, Building2, Star,
-  ChevronLeft, Volume2, UserCircle, Shield, Menu,
+  Search, Star, ChevronLeft, Volume2, UserCircle, Shield, Menu,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { speak } from '../core/utils';
+import { useServices } from '../hooks/useServices';
+import { useFilteredServices } from '../hooks/useFilteredServices';
+import { ServiceIcon, ServiceGridSkeleton } from '../components/ui';
+import type { ServiceItem } from '../hooks/useServices';
 
 export default function Home() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { services, loading } = useServices();
+  const filteredServices = useFilteredServices(services, searchQuery);
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -17,21 +24,13 @@ export default function Home() {
     speak(text, i18n.language);
   };
 
-  const handleServiceClick = (id: string) => {
-    if (['shops', 'hotels', 'enterprise'].includes(id)) {
+  const handleServiceClick = (service: ServiceItem) => {
+    if (service.route === 'contracts') {
       navigate('/contracts');
     } else {
-      navigate(`/service/${id}`);
+      navigate(`/service/${service.slug}`);
     }
   };
-
-  const services = [
-    { id: 'cleaning',   title: t('services.homeCleaning'),  icon: <Sparkles  className="w-6 h-6" />, bg: 'bg-accent/20',           fg: 'text-text-primary'   },
-    { id: 'ac',         title: t('services.acMaintenance'), icon: <Wind      className="w-6 h-6" />, bg: 'bg-border',               fg: 'text-text-secondary' },
-    { id: 'shops',      title: t('services.shopContracts'), icon: <Briefcase className="w-6 h-6" />, bg: 'bg-text-secondary/10',    fg: 'text-text-primary'   },
-    { id: 'hotels',     title: t('services.hotelContracts'),icon: <Building2 className="w-6 h-6" />, bg: 'bg-accent/10',            fg: 'text-text-secondary' },
-    { id: 'enterprise', title: t('services.enterprise'),    icon: <Star      className="w-6 h-6" />, bg: 'bg-text-primary/8',       fg: 'text-text-primary'   },
-  ];
 
   const steps = [
     { num: '١', title: t('howSteps.step1Title'), desc: t('howSteps.step1Desc') },
@@ -51,9 +50,7 @@ export default function Home() {
 
       {/* ── Hero / Header ── */}
       <div className="bg-text-primary px-5 pt-12 pb-8 rounded-b-[36px] shadow-[var(--shadow-header)] mb-8 relative overflow-hidden">
-        {/* Luxury gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-accent/[0.06] pointer-events-none" />
-        {/* Subtle radial glow */}
         <div className="absolute -top-20 -end-20 w-56 h-56 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
         <div className="flex justify-between items-center mb-6 relative z-10">
@@ -62,17 +59,18 @@ export default function Home() {
               {t('app.name')}
               <button
                 onClick={(e) => handleSpeak(e, t('app.name'))}
-                aria-label="استمع"
+                aria-label={t('common.listen')}
                 className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95"
               >
                 <Volume2 className="w-4 h-4 text-accent" />
               </button>
             </h1>
-            <p className="text-white/70 text-sm mt-1.5 font-medium tracking-wide">خدمات موثوقة، جودة مضمونة</p>
+            <p className="text-white/70 text-sm mt-1.5 font-medium tracking-wide">{t('app.tagline')}</p>
           </div>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/profile')}
             className="w-11 h-11 bg-white/[0.08] backdrop-blur-sm rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 hover:bg-white/[0.16] hover:scale-105 active:scale-95 shadow-sm"
+            aria-label={t('nav.profile')}
           >
             <UserCircle className="w-6 h-6 text-accent" />
           </button>
@@ -81,53 +79,63 @@ export default function Home() {
         {/* Global Search Bar */}
         <div className="relative z-10 group">
           <input
-            type="text"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('home.searchPlaceholder')}
+            aria-label={t('home.searchPlaceholder')}
             className="w-full bg-white/[0.10] border border-white/20 rounded-2xl py-3.5 ps-12 pe-5 text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-accent/70 focus:bg-white/[0.16] backdrop-blur-md shadow-sm transition-all duration-300 ease-out text-sm font-medium"
           />
           <Search className="absolute start-4 top-4 w-4.5 h-4.5 text-white/55 group-focus-within:text-accent transition-colors duration-300" />
         </div>
       </div>
 
-      {/* ── Service Categories (exactly 5) ── */}
+      {/* ── Service Categories (dynamic from Firestore) ── */}
       <div className="px-4 mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-base font-bold text-text-primary flex items-center gap-1.5">
             {t('home.categories')}
-            <button onClick={(e) => handleSpeak(e, t('home.categories'))} aria-label="استمع" className="btn-speak">
+            <button onClick={(e) => handleSpeak(e, t('home.categories'))} aria-label={t('common.listen')} className="btn-speak">
               <Volume2 className="w-3.5 h-3.5 text-text-secondary" />
             </button>
           </h2>
         </div>
-        <div className="flex overflow-x-auto gap-3.5 pb-2 snap-x hide-scrollbar">
-          {services.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => handleServiceClick(s.id)}
-              className="group min-w-[118px] bg-bg-card rounded-[20px] p-4 shadow-card hover:shadow-[var(--shadow-card-hover)] border border-border/50 hover:border-accent/40 flex flex-col items-center justify-center gap-3.5 snap-center interactive-card outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <div className={`w-13 h-13 w-[52px] h-[52px] rounded-full ${s.bg} ${s.fg} flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110`}>
-                {s.icon}
-              </div>
-              <span className="text-[12.5px] font-bold text-center text-text-primary leading-snug tracking-wide">{s.title}</span>
-            </button>
-          ))}
-        </div>
+
+        {loading ? (
+          <ServiceGridSkeleton />
+        ) : filteredServices.length === 0 ? (
+          <p className="text-sm text-text-secondary text-center py-6 px-4 bg-bg-card rounded-2xl border border-border/50">
+            {t('home.noSearchResults')}
+          </p>
+        ) : (
+          <div className="flex overflow-x-auto gap-3.5 pb-2 snap-x hide-scrollbar">
+            {filteredServices.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => handleServiceClick(s)}
+                className="group min-w-[118px] bg-bg-card rounded-[20px] p-4 shadow-card hover:shadow-[var(--shadow-card-hover)] border border-border/50 hover:border-accent/40 flex flex-col items-center justify-center gap-3.5 snap-center interactive-card outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <div className={`w-[52px] h-[52px] rounded-full ${s.iconBg} ${s.iconFg} flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110`}>
+                  <ServiceIcon type={s.icon} />
+                </div>
+                <span className="text-[12.5px] font-bold text-center text-text-primary leading-snug tracking-wide">{t(s.titleKey)}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── How It Works (exactly 4 steps) ── */}
       <div className="px-4 mb-8">
         <h2 className="text-base font-bold text-text-primary flex items-center gap-1.5 mb-4">
           {t('home.howItWorks')}
-          <button onClick={(e) => handleSpeak(e, t('home.howItWorks'))} aria-label="استمع" className="btn-speak">
+          <button onClick={(e) => handleSpeak(e, t('home.howItWorks'))} aria-label={t('common.listen')} className="btn-speak">
             <Volume2 className="w-3.5 h-3.5 text-text-secondary" />
           </button>
         </h2>
 
         <div className="bg-bg-card rounded-2xl p-6 border border-border/50 shadow-card hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-300 relative overflow-hidden">
-          {/* Subtle top-right accent glow */}
           <div className="absolute -top-6 -end-6 w-24 h-24 rounded-full bg-accent/8 blur-2xl pointer-events-none" />
-          {/* Vertical timeline connector */}
           <div className="absolute top-[52px] start-[38px] bottom-12 w-px bg-border/70 z-0" />
           <div className="flex flex-col gap-7 relative z-10">
             {steps.map((step, idx) => (
@@ -150,7 +158,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-base font-bold text-text-primary flex items-center gap-1.5">
             {t('home.topArtisans')}
-            <button onClick={(e) => handleSpeak(e, t('home.topArtisans'))} aria-label="استمع" className="btn-speak">
+            <button onClick={(e) => handleSpeak(e, t('home.topArtisans'))} aria-label={t('common.listen')} className="btn-speak">
               <Volume2 className="w-3.5 h-3.5 text-text-secondary" />
             </button>
           </h2>
@@ -176,7 +184,7 @@ export default function Home() {
                   <div className="flex items-center gap-1.5 mt-2">
                     <Star className="w-3.5 h-3.5 text-accent fill-accent" />
                     <span className="text-xs font-black text-text-primary">{artisan.rating}</span>
-                    <span className="text-[10px] text-text-secondary">({artisan.reviews} تقييم)</span>
+                    <span className="text-[10px] text-text-secondary">({artisan.reviews} {t('home.reviews')})</span>
                   </div>
                 </div>
               </div>
@@ -184,7 +192,7 @@ export default function Home() {
                 onClick={() => navigate(`/artisan/${artisan.id}`)}
                 className="mt-4 w-full py-2.5 bg-bg-primary text-text-primary text-xs font-bold rounded-xl border border-border/60 hover:bg-accent hover:text-white hover:border-transparent hover:shadow-md active:scale-95 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                عرض الملف
+                {t('home.viewProfile')}
               </button>
             </div>
           ))}
@@ -194,25 +202,32 @@ export default function Home() {
       {/* ── Bottom Navigation Bar ── */}
       <div className="fixed bottom-0 max-w-md w-full bg-bg-card/80 backdrop-blur-md border-t border-border/60 flex justify-around py-3 px-2 shadow-[var(--shadow-bottom-bar)] z-50">
         <button
+          onClick={() => navigate('/profile')}
+          className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
+        >
+          <UserCircle className="w-6 h-6" />
+          <span className="text-[10px] font-bold">{t('nav.profile')}</span>
+        </button>
+        <button
           onClick={() => navigate('/admin')}
           className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
         >
           <Shield className="w-6 h-6" />
-          <span className="text-[10px] font-bold">الإدارة</span>
+          <span className="text-[10px] font-bold">{t('nav.admin')}</span>
         </button>
         <button
           onClick={() => navigate('/register-artisan')}
           className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
         >
           <UserCircle className="w-6 h-6" />
-          <span className="text-[10px] font-bold">اصبح حرفياً</span>
+          <span className="text-[10px] font-bold">{t('nav.becomeArtisan')}</span>
         </button>
         <button
           onClick={() => navigate('/how')}
           className="flex flex-col items-center gap-1 p-2 text-text-secondary hover:text-accent transition-colors duration-200 active:scale-95"
         >
           <Menu className="w-6 h-6" />
-          <span className="text-[10px] font-bold">المزيد</span>
+          <span className="text-[10px] font-bold">{t('nav.more')}</span>
         </button>
       </div>
     </div>

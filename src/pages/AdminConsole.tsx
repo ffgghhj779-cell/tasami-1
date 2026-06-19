@@ -1,8 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight,
-  ChevronLeft,
   Volume2,
   RefreshCw,
   Search,
@@ -15,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { speak, toEasternArabic } from '../core/utils';
+import { PageHeader, BookingListSkeleton } from '../components/ui';
 import { STATUS_LABELS, type BookingStatus } from '../core/admin';
 import { useAdminBookings } from '../hooks/useAdminBookings';
 
@@ -54,7 +52,6 @@ function StatusBadge({ status }: { status: BookingStatus }) {
 }
 
 export default function AdminConsole() {
-  const navigate = useNavigate();
   const { i18n } = useTranslation();
   const { bookings, loading, error, lastUpdated, refresh, toggleStatus } = useAdminBookings();
 
@@ -103,58 +100,40 @@ export default function AdminConsole() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col font-arabic">
-
-      {/* Header */}
-      <div className="bg-text-primary px-4 pt-12 pb-5 rounded-b-[32px] shadow-[var(--shadow-header)] sticky top-0 z-20">
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={() => navigate('/home')}
-            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95"
-            aria-label="رجوع"
-          >
-            {i18n.dir() === 'rtl'
-              ? <ChevronRight className="w-5 h-5 text-white" />
-              : <ChevronLeft className="w-5 h-5 text-white" />}
-          </button>
-          <h1 className="text-lg font-bold text-white flex-1 text-center flex items-center justify-center gap-2">
-            لوحة الإدارة
-            <button
-              onClick={e => handleSpeak(e, 'لوحة الإدارة')}
-              aria-label="استمع"
-              className="p-1.5 hover:bg-white/10 rounded-full transition-all duration-300 active:scale-95"
-            >
-              <Volume2 className="w-4 h-4 text-accent" />
-            </button>
-          </h1>
+    <div className="min-h-screen bg-bg-primary flex flex-col">
+      <PageHeader
+        title="لوحة الإدارة"
+        onSpeak={e => handleSpeak(e, 'لوحة الإدارة')}
+        backTo="/home"
+        action={
           <button
             onClick={refresh}
             disabled={loading}
-            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95 disabled:opacity-50"
+            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all duration-300 active:scale-95 disabled:opacity-50 shrink-0"
             aria-label="تحديث"
           >
             <RefreshCw className={`w-5 h-5 text-accent ${loading ? 'animate-spin' : ''}`} />
           </button>
-        </div>
-
-        {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'إجمالي الحجوزات', value: stats.total, icon: ClipboardList },
-            { label: 'قيد الانتظار', value: stats.pending, icon: Clock },
-            { label: 'مؤكدة', value: stats.confirmed, icon: CheckCircle2 },
-          ].map(({ label, value, icon: Icon }) => (
-            <div
-              key={label}
-              className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-3 text-center"
-            >
-              <Icon className="w-4 h-4 text-accent mx-auto mb-1" />
-              <span className="block text-[10px] text-white/70 font-bold mb-0.5">{label}</span>
-              <span className="text-xl font-black text-white">{toEasternArabic(value)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+        }
+        footer={
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'إجمالي الحجوزات', value: stats.total, icon: ClipboardList },
+              { label: 'قيد الانتظار', value: stats.pending, icon: Clock },
+              { label: 'مؤكدة', value: stats.confirmed, icon: CheckCircle2 },
+            ].map(({ label, value, icon: Icon }) => (
+              <div
+                key={label}
+                className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-3 text-center"
+              >
+                <Icon className="w-4 h-4 text-accent mx-auto mb-1" />
+                <span className="block text-[10px] text-white/70 font-bold mb-0.5">{label}</span>
+                <span className="text-xl font-black text-white">{toEasternArabic(value)}</span>
+              </div>
+            ))}
+          </div>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto p-4 pb-10 space-y-4">
 
@@ -224,10 +203,7 @@ export default function AdminConsole() {
           )}
 
           {loading && bookings.length === 0 ? (
-            <div className="flex flex-col items-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 text-accent animate-spin" />
-              <span className="text-sm font-bold text-text-secondary">جاري تحميل الحجوزات…</span>
-            </div>
+            <BookingListSkeleton count={4} />
           ) : filtered.length === 0 ? (
             <p className="text-center text-sm font-bold text-text-secondary py-10">
               لا توجد حجوزات مطابقة

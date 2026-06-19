@@ -23,10 +23,24 @@
   --font-arabic: 'Tajawal', sans-serif;
   --font-urdu: 'Noto Nastaliq Urdu', serif;
   --font-sans: 'Tajawal', ui-sans-serif, system-ui, sans-serif;
+  --font-active: var(--font-arabic);
+}
+
+html {
+  --font-active: var(--font-arabic);
+}
+
+html.font-urdu {
+  --font-active: var(--font-urdu);
+}
+
+html.font-arabic {
+  --font-active: var(--font-arabic);
 }
 
 body {
-  @apply bg-bg-primary text-text-primary font-arabic;
+  font-family: var(--font-active);
+  @apply bg-bg-primary text-text-primary;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -87,6 +101,51 @@ body {
   .success-fade-up {
     animation: success-fade-up 0.5s ease-out both;
   }
+
+  /* ─── Skeleton shimmer ─── */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.45),
+      transparent
+    );
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  /* ─── Page route transition (GPU: opacity + transform only) ─── */
+  .page-enter {
+    animation: page-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity, transform;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes page-enter {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
+  .page-enter {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes success-pop {
@@ -105,10 +164,63 @@ body {
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Success confetti (12 particles, transform + opacity only) ─── */
+.confetti-root {
+  max-width: 28rem;
+  margin-inline: auto;
+  inset-inline: 0;
+}
+
+.confetti-particle {
+  position: absolute;
+  top: -8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: confetti-fall 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.confetti-particle--0  { left: 8%;  background: #C4A97D; animation-delay: 0s;    transform: rotate(15deg); }
+.confetti-particle--1  { left: 18%; background: #3E4A2E; animation-delay: 0.08s; transform: rotate(45deg); width: 6px; height: 10px; }
+.confetti-particle--2  { left: 28%; background: #5C6B44; animation-delay: 0.04s; border-radius: 50%; }
+.confetti-particle--3  { left: 38%; background: #C4A97D; animation-delay: 0.12s; width: 10px; height: 6px; }
+.confetti-particle--4  { left: 48%; background: #FBF7F2; animation-delay: 0.02s; border: 1px solid #C4A97D; }
+.confetti-particle--5  { left: 58%; background: #3E4A2E; animation-delay: 0.1s;  transform: rotate(30deg); }
+.confetti-particle--6  { left: 68%; background: #C4A97D; animation-delay: 0.06s; border-radius: 50%; width: 6px; height: 6px; }
+.confetti-particle--7  { left: 78%; background: #5C6B44; animation-delay: 0.14s; width: 9px; height: 5px; }
+.confetti-particle--8  { left: 88%; background: #C4A97D; animation-delay: 0.03s; transform: rotate(60deg); }
+.confetti-particle--9  { left: 14%; background: #3E4A2E; animation-delay: 0.16s; border-radius: 50%; width: 5px; height: 5px; }
+.confetti-particle--10 { left: 52%; background: #5C6B44; animation-delay: 0.09s; transform: rotate(20deg); width: 7px; height: 9px; }
+.confetti-particle--11 { left: 82%; background: #C4A97D; animation-delay: 0.11s; border-radius: 1px; width: 4px; height: 12px; }
+
+@keyframes confetti-fall {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate3d(var(--confetti-drift, 20px), 110vh, 0) rotate(720deg); }
+}
+
+.confetti-particle--0  { --confetti-drift: -24px; }
+.confetti-particle--1  { --confetti-drift: 18px; }
+.confetti-particle--2  { --confetti-drift: -12px; }
+.confetti-particle--3  { --confetti-drift: 28px; }
+.confetti-particle--4  { --confetti-drift: -32px; }
+.confetti-particle--5  { --confetti-drift: 14px; }
+.confetti-particle--6  { --confetti-drift: -18px; }
+.confetti-particle--7  { --confetti-drift: 22px; }
+.confetti-particle--8  { --confetti-drift: -26px; }
+.confetti-particle--9  { --confetti-drift: 16px; }
+.confetti-particle--10 { --confetti-drift: -20px; }
+.confetti-particle--11 { --confetti-drift: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-particle { display: none; }
+}
+
 /* ─── Leaflet map (Booking screen) ─── */
 .booking-map-root .leaflet-container {
   width: 100%;
   height: 100%;
   background: var(--color-bg-primary);
-  font-family: var(--font-arabic);
+  font-family: var(--font-active);
 }

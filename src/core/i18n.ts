@@ -24,12 +24,12 @@ i18n
     }
   });
 
-// Handle direction changes based on language
-i18n.on('languageChanged', (lng) => {
+// Handle direction and font on language change
+function applyLanguageLayout(lng: string) {
   const isRTL = lng === 'ar' || lng === 'ur';
   document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
   document.documentElement.lang = lng;
-  
+
   if (lng === 'ur') {
     document.documentElement.classList.add('font-urdu');
     document.documentElement.classList.remove('font-arabic');
@@ -37,6 +37,9 @@ i18n.on('languageChanged', (lng) => {
     document.documentElement.classList.add('font-arabic');
     document.documentElement.classList.remove('font-urdu');
   }
-});
+}
+
+i18n.on('languageChanged', applyLanguageLayout);
+applyLanguageLayout(i18n.language ?? 'ar');
 
 export default i18n;
