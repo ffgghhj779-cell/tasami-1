@@ -101,7 +101,7 @@ export default function RegisterArtisan() {
         onSpeak={e => handleSpeak(e, 'انضم كحرفي')}
       />
 
-      <div className="flex-1 p-5 overflow-y-auto pb-12">
+      <div className="main-content-scroll p-5 pb-12">
         <div className="bg-bg-card p-6 rounded-[24px] shadow-card border border-border/50 text-center mb-6">
           <div className="w-24 h-24 bg-bg-primary border-2 border-dashed border-border rounded-full mx-auto mb-4 flex items-center justify-center text-text-secondary relative overflow-hidden hover:border-accent transition-colors duration-300">
             <Camera className="w-8 h-8" />

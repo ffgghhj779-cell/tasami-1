@@ -33,7 +33,9 @@
 
 html {
   --font-active: var(--font-arabic);
-  overscroll-behavior-y: none;
+  height: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -52,12 +54,14 @@ html.font-arabic {
 body {
   font-family: var(--font-active);
   @apply bg-bg-primary text-text-primary;
+  min-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  touch-action: manipulation;
+  touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
 }
 
 /* Arabic / Urdu typography rhythm */
@@ -72,9 +76,10 @@ html.font-urdu {
   line-height: 1.85;
 }
 
-/* Native app shell — no rubber-band, no text selection on chrome */
+/* Native app shell — document scrolls naturally; no global overscroll lock */
 .app-shell {
-  overscroll-behavior: none;
+  min-height: 100vh;
+  min-height: 100dvh;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -124,19 +129,33 @@ label[for] {
   user-select: none;
 }
 
+@utility scroll-contained {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 @layer utilities {
+  /* Scrollable regions — momentum on iOS; never use on html/body */
   .native-scroll {
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    contain: layout style;
+    touch-action: pan-y;
+    min-height: 0;
   }
 
-  .overflow-y-auto,
-  .overflow-x-auto {
+  /* Primary page content — use on flex-1 scroll columns */
+  .main-content-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
+
+  /* Modals / sheets only — trap overscroll inside overlay */
 
   /* ─── Instant tap feedback (spring physics, transform only) ─── */
   .tap-scale {
@@ -171,12 +190,14 @@ label[for] {
 
   /* ─── Modal / sheet (transform + opacity only) ─── */
   .modal-backdrop {
-    @apply gpu-layer will-opacity;
+    @apply gpu-layer will-opacity scroll-contained;
     animation: modal-fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .modal-sheet {
-    @apply gpu-layer will-gpu;
+    @apply gpu-layer will-gpu scroll-contained;
+    max-height: min(90dvh, 100%);
+    overflow-y: auto;
     animation: modal-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 

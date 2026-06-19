@@ -28,7 +28,7 @@ const AnimatedRoutes = memo(function AnimatedRoutes() {
   useDocumentTitle();
 
   return (
-    <div key={location.pathname} className="page-enter min-h-full gpu-layer">
+    <div key={location.pathname} className="page-enter min-h-full">
       <Suspense fallback={<PageSkeleton />}>
         <Routes location={location}>
           <Route path="/"               element={<LangSelect />}     />
@@ -68,7 +68,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell ui-chrome min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative gpu-layer premium-depth">
+      <div className="app-shell ui-chrome min-h-screen bg-bg-primary text-text-primary mx-auto max-w-md shadow-2xl relative premium-depth">
         {!isOnline && <OfflineBanner />}
         <AnimatedRoutes />
       </div>

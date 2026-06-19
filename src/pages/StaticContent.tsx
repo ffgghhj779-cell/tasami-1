@@ -111,7 +111,7 @@ export default function StaticContent() {
         onSpeak={e => handleSpeak(e, title)}
       />
 
-      <div className="flex-1 p-6 overflow-y-auto pb-12">
+      <div className="main-content-scroll p-6 pb-12">
         <div className="bg-bg-card p-6 rounded-[24px] shadow-card border border-border/50">
           {renderContent()}
         </div>

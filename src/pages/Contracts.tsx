@@ -68,7 +68,7 @@ export default function Contracts() {
         onSpeak={e => handleSpeak(e, 'عقود الشركات')}
       />
 
-      <div className="flex-1 p-5 overflow-y-auto pb-12">
+      <div className="main-content-scroll p-5 pb-12">
         <p className="text-text-secondary text-sm font-medium leading-relaxed mb-6">
           نوفر باقات تعاقد مرنة تناسب جميع القطاعات والمؤسسات بأعلى معايير الجودة والالتزام.
           اختر الباقة المناسبة ليتم التواصل معك فوراً.

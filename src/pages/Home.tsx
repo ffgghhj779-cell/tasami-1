@@ -46,7 +46,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="pb-24 w-full min-h-screen relative overflow-y-auto overflow-x-hidden">
+    <div className="pb-24 w-full min-h-screen relative">
 
       {/* ── Hero / Header ── */}
       <div className="bg-text-primary px-5 pt-12 pb-8 rounded-b-[36px] shadow-[var(--shadow-header)] mb-8 relative overflow-hidden">

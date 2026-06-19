@@ -26,7 +26,7 @@ export default function ServiceDetails() {
         onSpeak={e => handleSpeak(e, 'تفاصيل الخدمة')}
       />
 
-      <div className="flex-1 p-5 overflow-y-auto">
+      <div className="main-content-scroll p-5">
 
         {/* Service Info Card */}
         <div className="bg-bg-card rounded-[24px] shadow-card p-6 mb-6 border border-border/50 relative overflow-hidden">

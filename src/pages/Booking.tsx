@@ -134,7 +134,7 @@ export default function Booking() {
         onSpeak={e => handleSpeak(e, 'الموعد والعنوان')}
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="main-content-scroll">
         <div className="p-4 pb-28 space-y-5">
 
           {/* ── Map Pin-Drop Card ── */}
