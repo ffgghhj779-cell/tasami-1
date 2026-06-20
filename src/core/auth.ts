@@ -8,7 +8,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from './firebase';
-import { clearGoogleRedirectPending } from './authBootstrap';
+import { clearGoogleRedirectPending, GOOGLE_REDIRECT_PENDING_KEY } from './authBootstrap';
 
 /** True when signed in via Google, Phone, or Email — anonymous is never allowed. */
 export function isVerifiedUser(user: User | null | undefined): boolean {
@@ -89,6 +89,7 @@ export async function signInWithGoogle(): Promise<'popup' | 'redirect'> {
       || code === 'auth/cancelled-popup-request'
       || code === 'auth/internal-error'
       || code === 'auth/web-storage-unsupported'
+      || code === 'auth/argument-error'
     ) {
       return signInWithGoogleRedirect();
     }
@@ -133,6 +134,8 @@ export function mapGoogleAuthError(code?: string): string {
       return 'هذا المتصفح لا يدعم Google. افتح الرابط في Chrome أو Safari مباشرة.';
     case 'auth/account-exists-with-different-credential':
       return 'هذا البريد مسجّل بطريقة أخرى. جرّب البريد/الجوال أو حساب Google مختلف.';
+    case 'auth/argument-error':
+      return 'خطأ في إعداد Google. حدّث الصفحة وحاول مجدداً — أو استخدم البريد/الجوال.';
     default:
       return 'تعذّر تسجيل الدخول عبر Google. افتح الموقع في Chrome أو Safari وحاول مجدداً.';
   }

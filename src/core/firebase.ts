@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import {
   browserLocalPersistence,
+  browserPopupRedirectResolver,
   getAuth,
   indexedDBLocalPersistence,
   initializeAuth,
@@ -25,6 +26,7 @@ function createAuth() {
   try {
     return initializeAuth(app, {
       persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+      popupRedirectResolver: browserPopupRedirectResolver,
     });
   } catch {
     return getAuth(app);
