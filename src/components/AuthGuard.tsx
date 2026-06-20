@@ -6,7 +6,7 @@ import { isVerifiedUser } from '../core/auth';
 import { getAuthUserSnapshot } from '../core/authSession';
 import { speak } from '../core/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { isGoogleRedirectPending } from '../core/authBootstrap';
+import { isGoogleRedirectPending, isGoogleRedirectReturn, clearGoogleRedirectPending } from '../core/authBootstrap';
 import { PageSkeleton } from './ui';
 
 interface AuthGuardProps {
@@ -29,7 +29,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (!ready || settling) return;
-    if (isGoogleRedirectPending() && !verified && !getAuthUserSnapshot()) return;
+    if (isGoogleRedirectReturn() && !verified && !getAuthUserSnapshot()) {
+      const timeout = window.setTimeout(() => {
+        clearGoogleRedirectPending();
+      }, 12000);
+      return () => clearTimeout(timeout);
+    }
+    if (isGoogleRedirectPending() && !isGoogleRedirectReturn()) return;
 
     const effectiveUser = user ?? getAuthUserSnapshot();
     const ok = isVerifiedUser(effectiveUser) || verified;
@@ -50,7 +56,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [ready, settling, user, verified, navigate, location.pathname, location.search]);
 
-  const awaitingGoogle = isGoogleRedirectPending() && !verified && !user;
+  const finishingGoogle = isGoogleRedirectReturn() && !verified && !user;
 
   const handleSpeak = (e: React.MouseEvent, text: string) => {
     e.preventDefault();
@@ -58,7 +64,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     speak(text, i18n.language);
   };
 
-  if (!ready || settling || state === 'loading' || awaitingGoogle) {
+  if (!ready || settling || state === 'loading' || finishingGoogle) {
     return <PageSkeleton />;
   }
 

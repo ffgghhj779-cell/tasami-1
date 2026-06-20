@@ -80,10 +80,14 @@ export default function RegisterArtisan() {
         city: form.city,
         phone: form.phone.trim(),
         experienceYears: years,
+        contactEmail: user.email ?? '',
+        authPhone: user.phoneNumber ?? '',
+        displayName: user.displayName ?? '',
         status: 'pending',
+        adminNotes: '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
 
       setShowSuccess(true);
       setForm(INITIAL_FORM);

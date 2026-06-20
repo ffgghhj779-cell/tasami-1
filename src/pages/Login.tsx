@@ -24,7 +24,7 @@ import { formatPhoneForFirebaseAuth, validatePhone } from '../core/phone';
 import { speak } from '../core/utils';
 import { haptic } from '../core/haptics';
 import { useAuth } from '../contexts/AuthContext';
-import { GOOGLE_REDIRECT_PENDING_KEY, isGoogleRedirectPending, LAST_AUTH_ERROR_KEY } from '../core/authBootstrap';
+import { GOOGLE_REDIRECT_PENDING_KEY, isGoogleRedirectPending, isGoogleRedirectReturn, LAST_AUTH_ERROR_KEY, clearGoogleRedirectPending } from '../core/authBootstrap';
 import { ButtonShimmer } from '../components/ui';
 import { PageSkeleton } from '../components/ui';
 
@@ -92,20 +92,20 @@ export default function Login() {
 
   useEffect(() => {
     if (!ready || settling || !verified) return;
-    if (sessionStorage.getItem(GOOGLE_REDIRECT_PENDING_KEY) !== '1') return;
-    sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+    if (!isGoogleRedirectPending()) return;
+    clearGoogleRedirectPending();
     navigate(returnTo, { replace: true });
   }, [ready, settling, verified, navigate, returnTo]);
 
   useEffect(() => {
     if (!ready || settling || verified) return;
-    if (!isGoogleRedirectPending()) return;
+    if (!isGoogleRedirectReturn()) return;
     const timeout = window.setTimeout(() => {
       if (!isVerifiedUser(auth.currentUser)) {
-        sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
-        setError('تعذّر إكمال تسجيل Google بعد العودة من الحساب. اضغط «نسخ الخطأ» بالأسفل وأرسله للدعم، أو جرّب البريد/الجوال.');
+        clearGoogleRedirectPending();
+        setError('تعذّر إكمال تسجيل Google. جرّب مرة أخرى أو استخدم البريد/الجوال.');
       }
-    }, 14000);
+    }, 12000);
     return () => clearTimeout(timeout);
   }, [ready, settling, verified]);
 
@@ -266,15 +266,25 @@ export default function Login() {
     return <PageSkeleton />;
   }
 
-  const awaitingGoogle = isGoogleRedirectPending() && !verified;
+  const finishingGoogle = isGoogleRedirectReturn() && !verified;
 
-  if (awaitingGoogle) {
+  if (finishingGoogle) {
     return (
       <div className="min-h-screen w-full flex flex-col p-6 items-center justify-center bg-bg-primary">
         <PageSkeleton />
         <p className="text-sm font-bold text-text-secondary mt-6 text-center">
           جاري إكمال تسجيل الدخول عبر Google…
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            clearGoogleRedirectPending();
+            setError('تم إلغاء انتظار Google. جرّب مرة أخرى أو استخدم البريد/الجوال.');
+          }}
+          className="mt-4 text-xs font-bold text-accent underline"
+        >
+          إلغاء والمحاولة مجدداً
+        </button>
       </div>
     );
   }

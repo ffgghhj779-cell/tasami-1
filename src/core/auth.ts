@@ -8,7 +8,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from './firebase';
-import { GOOGLE_REDIRECT_PENDING_KEY } from './authBootstrap';
+import { clearGoogleRedirectPending } from './authBootstrap';
 
 /** True when signed in via Google, Phone, or Email — anonymous is never allowed. */
 export function isVerifiedUser(user: User | null | undefined): boolean {
@@ -24,7 +24,7 @@ export function requireVerifiedUser(): User {
 }
 
 export async function signOutUser(): Promise<void> {
-  sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  clearGoogleRedirectPending();
   await signOut(auth);
 }
 
@@ -45,9 +45,11 @@ export function isStandalonePwa(): boolean {
   );
 }
 
-/** iOS Safari, Android mobile, installed PWA, and in-app browsers need redirect. */
+/** Redirect only where popup reliably fails — not all Android Chrome. */
 export function needsGoogleRedirect(): boolean {
-  return isMobileAuthContext() || isStandalonePwa();
+  if (isInAppBrowser()) return true;
+  if (isStandalonePwa()) return true;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 /** @deprecated Use needsGoogleRedirect for Google; kept for auth settle timing. */
@@ -61,17 +63,22 @@ export function isMobileAuthContext(): boolean {
 }
 
 async function signInWithGoogleRedirect(): Promise<'redirect'> {
-  sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, '1');
-  await signInWithRedirect(auth, googleProvider);
+  sessionStorage.setItem(GOOGLE_REDIRECT_PENDING_KEY, String(Date.now()));
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (err) {
+    clearGoogleRedirectPending();
+    throw err;
+  }
   return 'redirect';
 }
 
 export async function signInWithGoogle(): Promise<'popup' | 'redirect'> {
-  if (needsGoogleRedirect() || isInAppBrowser()) {
+  if (needsGoogleRedirect()) {
     return signInWithGoogleRedirect();
   }
 
-  sessionStorage.removeItem(GOOGLE_REDIRECT_PENDING_KEY);
+  clearGoogleRedirectPending();
   try {
     await signInWithPopup(auth, googleProvider);
     return 'popup';

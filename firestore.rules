@@ -151,11 +151,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ─── Artisans — public read, self-write ──────────────────────
+    // ─── Artisans — applications + profiles ──────────────────────
     match /artisans/{artisanId} {
       allow read: if isAuthenticated();
-      allow create: if isVerifiedUser() && isOwner(artisanId);
-      allow update: if isOwner(artisanId) || isAdmin();
+      allow create: if isVerifiedUser() && isOwner(artisanId)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if (
+        isOwner(artisanId)
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.userId == resource.data.userId
+      ) || (
+        isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'adminNotes', 'updatedAt', 'reviewedAt'])
+      );
       allow delete: if isAdmin();
     }
 
